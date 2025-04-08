@@ -22,17 +22,12 @@
 #         Employee, on_delete=models.CASCADE, null=True, blank=True
 #     )
 #     assigned_by = models.ForeignKey(
-        
+    
 #        Employee, on_delete=models.CASCADE, null=True, blank=True,
 #        related_name='assigned_contacts'
-   
+
 #     )
 #     status = models.CharField(
 #         max_length=100, choices=STATUS_CHOICE, default='active'
 #     )
 #     created_at = models.DateTimeField(auto_now_add=True)
-
-
-
-
-
