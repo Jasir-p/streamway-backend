@@ -16,3 +16,23 @@ app.autodiscover_tasks()
 @app.task(bind=True)
 def debug_task(self):
     print('Request: {0!r}'.format(self.request))
+
+
+# from __future__ import absolute_import, unicode_literals
+# import os
+# from tenant_schemas_celery.app import CeleryApp as Celery  # <== Use this instead of regular Celery
+# from tenant_schemas
+
+# os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'streamway.settings')
+
+# app = Celery('streamway')
+
+# # Load config from Django settings
+# app.config_from_object('django.conf:settings', namespace='CELERY')
+
+# # Autodiscover tasks from all registered Django app configs
+# app.autodiscover_tasks()
+
+# @app.task(bind=True)
+# def debug_task(self):
+#     print('Request: {0!r}'.format(self.request))
