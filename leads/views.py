@@ -1,4 +1,5 @@
 
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import LeadFormField, Leads,WebForm
@@ -289,10 +290,11 @@ def lead_assign(request):
         serializer = LeadAssignSerializer(data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response({'message': 'Lead assigned'}, status=status.HTTP_200_OK)
-        print("theline",serializer.errors)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+            return Response(
+                {'message': 'Lead assigned'}, status=status.HTTP_200_OK
+            )
+        print("theline", serializer.errors)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)   
     except Exception as e:
         print(str(e))
 
