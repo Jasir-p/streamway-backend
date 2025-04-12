@@ -16,7 +16,8 @@ class Contact(models.Model):
     email = models.EmailField(max_length=100)
     phone_number = models.CharField(max_length=20)
     lead = models.ForeignKey(
-        Leads, on_delete=models.CASCADE, null=True, blank=True
+        Leads, on_delete=models.CASCADE, null=True, blank=True,
+        related_name="lead_conatct"
     )
     assigned_to = models.ForeignKey(
         Employee, on_delete=models.CASCADE, null=True, blank=True
@@ -30,4 +31,5 @@ class Contact(models.Model):
     status = models.CharField(
         max_length=100, choices=STATUS_CHOICE, default='active'
     )
+    updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)

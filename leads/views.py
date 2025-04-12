@@ -12,6 +12,7 @@ from rest_framework.decorators import api_view, permission_classes
 from users.serializer import UserListViewSerializer
 from django.db.models import Exists, OuterRef, Subquery,Q,When,BooleanField,Case,Value
 from django.shortcuts import get_object_or_404
+from tenant.utlis.get_tenant import get_schema_name
 
 
 class FormfieldView(APIView):
@@ -42,6 +43,7 @@ class LeadsView(APIView):
     def get(self, request):
         userid = request.query_params.get("userId")
         print(userid)
+        print(get_schema_name(request))
         try:
             if userid:
                 employees = Employee.objects.filter(
@@ -50,10 +52,9 @@ class LeadsView(APIView):
                 leads = Leads.objects.filter(employee__in=employees).order_by("-created_at")
 
             else:
-           
                 leads = Leads.objects.all().order_by("-created_at")
+                
             paginator = StandardResultsSetPagination()
-            
             result_page = paginator.paginate_queryset(leads, request)
             serializer = LeadsGetSerializer(result_page, many=True)
             return paginator.get_paginated_response(serializer.data)
