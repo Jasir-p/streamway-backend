@@ -30,7 +30,8 @@ urlpatterns = [
     path('', include('tenant.urls')),
     path('', include('rabc.urls')),
     path('', include("users.urls")),
-    path('api/', include("leads.urls"))
+    path('api/', include("leads.urls")),
+    path('api/', include("Customer.urls")),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
