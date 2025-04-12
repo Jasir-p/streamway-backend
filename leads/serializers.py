@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import LeadFormField, Leads,WebForm
 from users.models import Employee
 from users.serializer import EmployeeSerializer,UserListViewSerializer
+from .tasks import create_lead_from_webform
+from tenant.utlis.get_tenant import get_schema_name
 
 
 
@@ -82,34 +84,32 @@ class LeadSerializers(serializers.ModelSerializer):
                               if k not in model_fields}
         print(self.custom_fields)
         return super().to_internal_value(data)
+    
+    def __init__(self, *args, **kwargs):
+        self.schema = kwargs.pop('schema', None)  # Pop schema from kwargs
+        super().__init__(*args, **kwargs)
 
     def create(self, validated_data):
+        schema = self.schema
         form_data_list = [form for form in validated_data.pop('form_data', [])]
-        print(form_data_list)
-        web_forms = WebForm.objects.filter(web_id__in=form_data_list)
-        web_form_dict = {form.web_id: form for form in web_forms}
         
         if form_data_list:
-            lead_access = []
-            for form_data in form_data_list:
-                    
-                web_form = web_form_dict.get(form_data)
-                print("custome",web_form.custome_fields)
-                            
-                lead = Leads.objects.create(
-                    form_data=web_form,
-                    name=web_form.name,
-                    email=web_form.email,
-                    phone_number=web_form.phone_number,
-                    location=web_form.location,
-                    employee=validated_data.get("employee"),
-                    granted_by=validated_data.get("granted_by"),
-                    custome_fields=web_form.custome_fields
-                )
-                lead_access.append(lead)
-                        
-            return lead_access
-        
+            web_forms = WebForm.objects.filter(web_id__in=form_data_list)
+            web_form_dict = {form.web_id: form for form in web_forms}
+            employee = validated_data.pop("employee", None)
+            granted_by = validated_data.pop("granted_by", None)
+
+            validated_data_serializable = validated_data.copy()
+            if employee:
+                validated_data_serializable["employee"] = employee.id
+            if granted_by:
+                validated_data_serializable["granted_by"] = granted_by.id
+            
+            create_lead_from_webform.delay(
+                form_data_list, validated_data_serializable, schema
+            )
+            return {"message": "Leads creation task started."}
+            
         else:
             lead = Leads.objects.create(**validated_data)
             if self.custom_fields:

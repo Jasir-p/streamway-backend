@@ -68,10 +68,11 @@ class LeadsView(APIView):
 
     def post(self, request, *args, **kwargs):
         tenant = request.tenant
+        schema = get_schema_name(request)
         print(tenant)
         if request.data:
             print(request.data)
-            serializer = LeadSerializers(data=request.data)
+            serializer = LeadSerializers(data=request.data, schema=schema)
             if serializer.is_valid():
                 
                 response = serializer.save()
@@ -128,9 +129,23 @@ class LeadsView(APIView):
         except Exception as e:
             return Response(
                 {'error': str(e)}, status=status.HTTP_400_BAD_REQUEST
-            
-            )
+             )
         
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])  
+def lead_overview(request):
+    try:
+        lead_id = request.query_params.get("lead_id")
+        Lead = Leads.objects.get(lead_id=lead_id)
+        serializer = LeadsGetSerializer(Lead)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
 
 # class LeadAsignView(APIView):
 
