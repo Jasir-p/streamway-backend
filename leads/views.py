@@ -13,6 +13,7 @@ from users.serializer import UserListViewSerializer
 from django.db.models import Exists, OuterRef, Subquery,Q,When,BooleanField,Case,Value
 from django.shortcuts import get_object_or_404
 from tenant.utlis.get_tenant import get_schema_name
+from Customer.serializers import ContactSerializer,AccountsSerilalizer
 
 
 class FormfieldView(APIView):
@@ -35,6 +36,23 @@ class FormfieldView(APIView):
                                 status=status.HTTP_201_CREATED)
             return Response(serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
+        
+    def delete(self, request):
+        field_id = request.data.get('field_id')
+        print(field_id)
+        if not field_id:
+            return Response({'message': 'Please provide field id'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            field = LeadFormField.objects.get(id=field_id)
+            field.delete()
+            return Response({'message': 'Field deleted successfully'},
+                            status=status.HTTP_200_OK)
+        except LeadFormField.DoesNotExist:
+            return Response({'message': 'Field does not exist'},
+                            status=status.HTTP_404_NOT_FOUND)
+        
+        
 
 
 class LeadsView(APIView):
@@ -68,10 +86,11 @@ class LeadsView(APIView):
 
     def post(self, request, *args, **kwargs):
         tenant = request.tenant
-        print(tenant)
+        schema = get_schema_name(request)
+        print(schema)
         if request.data:
             print(request.data)
-            serializer = LeadSerializers(data=request.data)
+            serializer = LeadSerializers(data=request.data, schema=schema)
             if serializer.is_valid():
                 
                 response = serializer.save()
@@ -93,9 +112,9 @@ class LeadsView(APIView):
             )
         
     def patch(self, request, *args, **kwargs):
+        print(request.data)
         
         lead_id = request.data.get("lead_id")
-        print(lead_id)
         lead = get_object_or_404(Leads, lead_id=lead_id)
         serilaizer = LeadSerializers(lead, data=request.data, partial=True)
         if serilaizer.is_valid():
@@ -128,9 +147,22 @@ class LeadsView(APIView):
         except Exception as e:
             return Response(
                 {'error': str(e)}, status=status.HTTP_400_BAD_REQUEST
-            
-            )
-        
+             )
+     
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])  
+def lead_overview(request):
+    try:
+        lead_id = request.query_params.get("lead_id")
+        Lead = Leads.objects.get(lead_id=lead_id)
+        serializer = LeadsGetSerializer(Lead)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
 
 # class LeadAsignView(APIView):
 
@@ -184,7 +216,7 @@ class LeadsView(APIView):
 #         except Exception as e:
 #             print(str(e))
 #             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
+
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -209,6 +241,7 @@ def get_employee(request):
     except Exception as e:
         print(str(e))
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
     
 class WebEnquiry(APIView):
     permission_classes = [IsAuthenticated]
@@ -247,6 +280,7 @@ class WebEnquiry(APIView):
                     {'message': 'Enquiry submitted'}, status=status.HTTP_200_OK
                 )
             else:
+                print(serializer.errors)
                 return Response(
                     serializer.errors, status=status.HTTP_400_BAD_REQUEST
                 )
@@ -302,11 +336,90 @@ def lead_assign(request):
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def status_update(request):
+    try:
+        status_label = request.data.get("status")
+        lead_ids = request.data.get("lead_id")
+        if not status or not lead_ids:
+            return Response(
+                {'error': 'Status and lead id are required'},
+
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if not isinstance(lead_ids, list):
+            lead_ids = [lead_ids]
+        valid_status = [choice[0] for choice in Leads.STATUS_CHOICES]
+        print(status_label)
+        print(valid_status)
+        if status_label not in valid_status:
+            return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+        lead = Leads.objects.filter(lead_id__in=lead_ids)
+        if not lead.exists():
+            return Response({'error': 'Lead not found'}, status=status.HTTP_400_BAD_REQUEST)
+
+        lead.update(status=status_label)
+        return Response(
+            {'message': 'Status updated'}, status=status.HTTP_200_OK
+        )
+    except Exception as e:
+        print(str(e))
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def convert_to(request):
+    try:
+        lead_id = request.data.get("lead")
+        contact = request.data.get("convert_to_contact")
+        customer = request.data.get("convert_to_customer")
+
+        if not lead_id:
+            return Response({'error': 'Lead id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        if not contact and not customer:
+            return Response({'error': 'Either contact or customer is required'}, status=status.HTTP_400_BAD_REQUEST)
+        result = {}
+        if contact:
+            contact_serializer = ContactSerializer(data=request.data)
+            if contact_serializer.is_valid():
+                contact_serializer.save()
+                result['contact'] = contact_serializer.data
+            else:
+                return Response(
+                    {"error": contact_serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST
+
+                )
+        if customer:
+            print("haii")
+            customer_serializer = AccountsSerilalizer(data=request.data)
+            if customer_serializer.is_valid():
+                customer_serializer.save()
+                result['customer'] = customer_serializer.data
+            else:
+                print(customer_serializer.errors)
+                return Response(
+                    {"error": customer_serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST
+                    )
+        return Response(
+            
+            {
+                'message': 'Lead converted successfully', 
+                'data': result}, status=status.HTTP_200_OK
+        
+        )
+
+    except Exception as e:
+        print(str(e))
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+
+        
 
 
-
-
-
+                       
     
         
 
