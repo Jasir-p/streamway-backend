@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import Contact,Accounts
 from leads.models import Leads
 from leads.serializers import LeadsGetSerializer
+from users.models import Employee
+from users.serializer import UserListViewSerializer
 
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -54,6 +56,8 @@ class ContactSerializer(serializers.ModelSerializer):
 
 class ContactViewSerializer(serializers.ModelSerializer):
     lead = LeadsGetSerializer(read_only=True)
+    assigned_to =UserListViewSerializer(read_only=True)
+    assigned_by =UserListViewSerializer(read_only=True)
     
     class Meta:
         model = Contact
@@ -111,7 +115,55 @@ class AccountsSerilalizer(serializers.ModelSerializer):
 
 class AccountsViewSerializer(serializers.ModelSerializer):
     lead = LeadsGetSerializer
+    assigned_to =UserListViewSerializer(read_only=True)
+    assigned_by =UserListViewSerializer(read_only=True)
 
     class Meta:
         model = Accounts
         fields = '__all__'
+
+
+class ContactsAsssignSerializer(serializers.Serializer):
+    contact_id = serializers.ListField(child=serializers.IntegerField(),required=True)
+    assigned_to = serializers.IntegerField(required=True)
+    assigned_by = serializers.IntegerField(allow_null=True)
+
+    
+
+    def validate(self, data):
+
+        assigned_to = data.get("assigned_to")
+        assigned_by = data.get("assigned_by")
+
+        if not Employee.objects.filter(id =assigned_to).exists():
+            raise serializers.ValidationError("Employee not found")
+        if assigned_by is not None and not Employee.objects.filter(id=assigned_by).exists():
+            raise serializers.ValidationError({"granted_by": "Granter not found"})
+        
+        if not Contact.objects.filter(id__in=data.get("contact_id")).exists():
+            raise serializers.ValidationError("Contact not found")
+        
+        return data
+
+    def save(self, **kwargs):
+        assigned_to = Employee.objects.get(id=self.validated_data.get("assigned_to"))
+        assigned_by_id = self.validated_data.get("assigned_by")
+        assigned_by = Employee.objects.get(id=assigned_by_id) if assigned_by_id else None
+        contacts = Contact.objects.filter(id__in=self.validated_data.get("contact_id"))
+        contacts.update(assigned_to=assigned_to, assigned_by=assigned_by)
+
+
+class AccountCustomizedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Accounts
+        fields = '__all__'
+
+    def validate(self, data):
+        if 'custome_fields' in data:
+            key= data['key']
+            instance_custom_fields = self.instance.custome_fields if self.instance and self.instance.custome_fields else {}
+
+            if key in instance_custom_fields:
+                raise serializers.ValidationError(f"Field '{key}' already exists in custom fields.")
+        
+        return data

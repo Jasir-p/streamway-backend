@@ -6,11 +6,6 @@ from leads.models import Leads
 from Customer.models import Contact,Accounts
 
 
-class Attachment(models.Model):
-    task = models.ForeignKey('Task', on_delete=models.CASCADE, related_name='attachments')
-    file = models.FileField(upload_to='task_attachments/')
-    file_name = models.CharField(max_length=255)
-    upload_date = models.DateTimeField(auto_now_add=True)
 
 
 class Task(models.Model):
@@ -25,7 +20,7 @@ class Task(models.Model):
         ('TODO', 'To Do'),
         ('IN_PROGRESS', 'In Progress'),
         ('REVIEW', 'Review'),
-        ('DONE', 'Done'),
+        ('COMPLETED', 'Completed'),
     ]
 
     title = models.CharField(max_length=200)
@@ -37,15 +32,15 @@ class Task(models.Model):
     account = models.ForeignKey(Accounts, on_delete=models.CASCADE, null=True, blank=True, related_name='tasks')
 
     assigned_to_employee = models.ForeignKey(
-        Employee, on_delete=models.CASCADE, null=True, blank=True,
+        Employee, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='assigned_tasks'
     )
     assigned_to_team = models.ForeignKey(
-        Team, on_delete=models.CASCADE, null=True, blank=True,
+        Team, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='team_tasks'
     )
     assigned_by = models.ForeignKey(
-        Employee, on_delete=models.CASCADE, null=True, blank=True,
+        Employee, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='created_tasks'
     )
     
@@ -54,6 +49,9 @@ class Task(models.Model):
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    attachment = models.FileField(
+        upload_to='task_attachments/', default=None, null=True
+    )
     
     def __str__(self):
         return self.title

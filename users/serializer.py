@@ -121,10 +121,6 @@ class CustomRefreshSerializer(TokenRefreshSerializer):
             
         return data
 
-    
-
-
-
 
 class TeamSerializer(serializers.ModelSerializer):
     members = EmployeeSerializer(many=True, read_only=True)
@@ -142,18 +138,19 @@ class TeamSerializer(serializers.ModelSerializer):
                         }
         
     def validate_name(self, value):
-        if Team.objects.filter(name__iexact=value).exists():
+        team_id = self.instance.id if self.instance else None
+        if Team.objects.filter(name__iexact=value).exclude(id=team_id).exists():
             raise serializers.ValidationError("Team name already exists")
         return value
         
     def create(self, validated_data):
         team = Team.objects.create(**validated_data)
         return team
-  
-        
+
+
 class TeamViewserilizer(serializers.ModelSerializer):
-    members = EmployeeSerializer(many=True, read_only=True)
-    team_lead = EmployeeSerializer(read_only=True)
+    members = UserListViewSerializer(many=True, read_only=True)
+    team_lead = UserListViewSerializer(read_only=True)
 
     class Meta:
         model = Team

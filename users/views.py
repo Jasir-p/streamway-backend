@@ -81,17 +81,22 @@ class EmployeeManagment(APIView):
         
     def put(self, request, *args, **kwargs):
         user_id = request.data.get("user_id")
+        user_data = request.data.get("user_data")
+        print(user_data)
+        
         try:
-            employee = Employee.objects.get(user_id=user_id)
-            serializer = EmployeeSerializer(employee, data=request.data)
+            employee = Employee.objects.get(id=user_id)
+            serializer = EmployeeSerializer(employee, data=user_data)
             if serializer.is_valid():
                 serializer.save()
                 return Response({"message": "Updated Succesfully"},
                                 status=status.HTTP_200_OK)
+            print(serializer.errors)
             return Response({"error": serializer.errors},
                             status=status.HTTP_400_BAD_REQUEST)
         
         except Exception as e:
+            print(str(e))
             return Response({"error": str(e)},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -239,8 +244,7 @@ def password_change_verify(request):
         user.set_password(password)
         user.save()
         redis_client.delete(redis_key)
-
-        
+ 
         return Response({"message": "Password changed successfully"},
                         status=status.HTTP_200_OK)
     
@@ -262,7 +266,6 @@ def profile_update(request):
         "role": role
     }
 
-
     if not user_id:
         return Response({"error": "User ID is required"},
                         status=status.HTTP_400_BAD_REQUEST)
@@ -270,7 +273,7 @@ def profile_update(request):
         return Response({"error": "Profile Data is required"},
                         status=status.HTTP_400_BAD_REQUEST)
     try:
-        if role =="owner":
+        if role == "owner":
             with schema_context("public"):
                 tenant = get_object_or_404(Tenant, id=user_id)
                 tenant.owner_name = profile_data.get('name')
@@ -293,27 +296,23 @@ def profile_update(request):
 
             if serializer.is_valid():
                 serializer.save()
-                return Response({"message": "Profile updated successfully"}, status=status.HTTP_200_OK)
+                return Response(
+                    {
+                        "message": "Profile updated successfully"
+                    }, status=status.HTTP_200_OK
+                )
             else:
                 print(serializer.errors)  # Log the actual errors
-                return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"errors": serializer.errors
+                     }, status=status.HTTP_400_BAD_REQUEST
+                )
     
     except Exception as e:
         print("Exception Traceback:", traceback.format_exc())
-        return Response({"error": str(e)}, 
+        return Response({"error": str(e)},
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-            
-
-            
-
-    
-
-
-
-        
-
-       
 
 class MyTokenObtainPairView(TokenObtainPairView):
     
@@ -353,7 +352,9 @@ class TeamManagmentView(APIView):
             print(serializer.data)
             return Response({"team": serializer.data})
         except Team.DoesNotExist:
-            return Response({"error": "Team not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "Team not found"}, status=status.HTTP_404_NOT_FOUND
+            )
        
     def post(self, request, *args, **kwargs):
         print(request.data["team_lead"])
@@ -369,7 +370,48 @@ class TeamManagmentView(APIView):
             return Response({"error": str(e)},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+    def put(self, request, *args, **kwargs):
+        print("data",request.data)
+        team_id = request.data.get("team_id")
+        print(type(team_id))
+        try:
+            
+            team = Team.objects.get(id=team_id)
+            serializer = TeamSerializer(team, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(
+                    {
+                        "message": "Successfully updated",
+                        'team': serializer.data
+                    }, status=status.HTTP_200_OK
+                )
+            print(serializer.errors)
+            return Response(
+                {
+                    "message": "Inavalid", "error": serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            print(e)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def delete(self, request):
+        team_id = request.data.get("team_id")
+        try:
+            
+            print(team_id)
+            team = Team.objects.get(id=team_id)
+            team.delete()
+            return Response({"message": "Sucessfully Deleted"}, status=status.HTTP_200_OK)
+        except Team.DoesNotExist:
+            return Response({"message": "Team is not Found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
   
+
 class TeamMemberView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -428,12 +470,17 @@ def change_team_lead(request):
         team_lead_id = request.data.get("lead_id")
         team_id = request.data.get("team_id")
         if not team_lead_id or not team_id:
-            return Response({"error": "Invalid request"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Invalid request"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
             
         new_lead = Employee.objects.get(id=team_lead_id)
         team = Team.objects.get(id=team_id)
         if new_lead not in team.members.all():
-            return Response({"error": "The selected employee is not a member of this team"}, 
+            return Response({
+                "error": "The selected employee is not a member of this team"
+            },
                             status=status.HTTP_400_BAD_REQUEST)
 
         if team.team_lead == new_lead:
