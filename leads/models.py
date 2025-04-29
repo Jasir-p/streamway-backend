@@ -3,6 +3,7 @@ from users.models import Employee
 import random
 from django.db.models import SET_NULL
 
+
 class LeadFormField(models.Model):
     field_name = models.CharField(max_length=255)
     field_type = models.CharField(max_length=255)

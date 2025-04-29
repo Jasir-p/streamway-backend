@@ -16,15 +16,15 @@ class Contact(models.Model):
     email = models.EmailField(max_length=100)
     phone_number = models.CharField(max_length=20)
     lead = models.ForeignKey(
-        Leads, on_delete=models.CASCADE, null=True, blank=True,
+        Leads, on_delete=models.SET_NULL, null=True, blank=True,
         related_name="lead_conatct"
     )
     assigned_to = models.ForeignKey(
-        Employee, on_delete=models.CASCADE, null=True, blank=True
+        Employee, on_delete=models.SET_NULL, null=True, blank=True
     )
     assigned_by = models.ForeignKey(
     
-       Employee, on_delete=models.CASCADE, null=True, blank=True,
+       Employee, on_delete=models.SET_NULL, null=True, blank=True,
        related_name='assigned_contacts'
 
     )
@@ -46,15 +46,15 @@ class Accounts(models.Model):
     phone_number = models.CharField(max_length=20)
     address = models.TextField(blank=True)
     lead = models.ForeignKey(
-        Leads, on_delete=models.CASCADE, null=True, blank=True,
+        Leads, on_delete=models.SET_NULL, null=True, blank=True,
         related_name="lead_acount"
     )
     assigned_to = models.ForeignKey(
-        Employee, on_delete=models.CASCADE, null=True, blank=True
+        Employee, on_delete=models.SET_NULL, null=True, blank=True
     )
     assigned_by = models.ForeignKey(
     
-       Employee, on_delete=models.CASCADE, null=True, blank=True,
+       Employee, on_delete=models.SET_NULL, null=True, blank=True,
        related_name='assigned_acounts'
 
     )
@@ -62,3 +62,4 @@ class Accounts(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    custome_fields = models.JSONField(null=True, blank=True,default=None)

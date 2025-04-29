@@ -1,4 +1,4 @@
-from .models import Task,Attachment
+from .models import Task
 from rest_framework import serializers
 from users.models import Employee,Team
 from django.contrib.contenttypes.models import ContentType
@@ -6,6 +6,7 @@ from leads.serializers import LeadsGetSerializer
 from Customer.serializers import AccountsViewSerializer,ContactViewSerializer
 from leads.models import Leads
 from Customer .models import Accounts,Contact
+from users.serializer import UserListViewSerializer
 
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -31,6 +32,7 @@ class TaskSerializer(serializers.ModelSerializer):
     assigned_by = serializers.PrimaryKeyRelatedField(
         queryset=Employee.objects.all(), required=False, allow_null=True
     )
+    attachment = serializers.FileField(required=False, allow_null=True)
 
     class Meta:
         model = Task
@@ -47,13 +49,27 @@ class TaskSerializer(serializers.ModelSerializer):
         return None
 
     def validate(self, attrs):
-
+        
         return super().validate(attrs)
 
 
 
-class AttachmentSerializer(serializers.ModelSerializer):
+
+
+
+class TaskViewSerializer(serializers.ModelSerializer):
+    assigned_to_employee = UserListViewSerializer(read_only=True)
+    lead = LeadsGetSerializer(read_only=True)
+    contact = ContactViewSerializer(read_only=True)
+    account = AccountsViewSerializer(read_only=True)
+
     class Meta:
-        model = Attachment
-        fields = ['id', 'file', 'file_name', 'upload_date']
+        model = Task
+        fields = '__all__'
     
+    def get_attachment_url(self, obj):
+        request = self.context.get('request')
+        print(request)
+        if obj.attachment and hasattr(obj.attachment, 'url'):
+            return request.build_absolute_uri(obj.attachment.url)
+        return None

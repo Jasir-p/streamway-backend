@@ -37,6 +37,23 @@ class FormfieldView(APIView):
             return Response(serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
         
+    def put(self, request):
+        try:
+            field_id = request.data.get('field_id')
+            field = LeadFormField.objects.get(id=field_id)
+            serializer = LeadFormSerializers(field, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({'message': 'Form updated successfully'},
+                                status=status.HTTP_200_OK)
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
+                    
     def delete(self, request):
         field_id = request.data.get('field_id')
         print(field_id)
@@ -53,8 +70,6 @@ class FormfieldView(APIView):
                             status=status.HTTP_404_NOT_FOUND)
         
         
-
-
 class LeadsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -115,15 +130,16 @@ class LeadsView(APIView):
         print(request.data)
         
         lead_id = request.data.get("lead_id")
+        print(lead_id)
         lead = get_object_or_404(Leads, lead_id=lead_id)
         serilaizer = LeadSerializers(lead, data=request.data, partial=True)
         if serilaizer.is_valid():
             serilaizer.save()
             return Response(
-              {'message': 'Lead updated successfully'},
+              {'message': 'Lead updated successfully','lead':serilaizer.data},
               status=status.HTTP_200_OK
             )
-        
+        print(serilaizer.errors)
         return Response(serilaizer.errors, status=status.HTTP_400_BAD_REQUEST)
         
     def delete(self, request, *args, **kwargs):
@@ -282,7 +298,7 @@ class WebEnquiry(APIView):
             else:
                 print(serializer.errors)
                 return Response(
-                    serializer.errors, status=status.HTTP_400_BAD_REQUEST
+                    {"detail":"Invalid input", "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
                 )
         
         except Exception as e:
