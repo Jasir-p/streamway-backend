@@ -121,6 +121,9 @@ class EmployeeLoginView(APIView):
         username = request.data.get("username")
         password = request.data.get("password")
         print(password, username)
+        tenant = request.tenant
+        print(tenant.is_active)
+        
         try:
             employee = authenticate(username=username, password=password)
             
@@ -128,7 +131,7 @@ class EmployeeLoginView(APIView):
                 return Response({"error": "Invalid credentials."},  
                                 status=status.HTTP_401_UNAUTHORIZED)
             
-            if not employee.is_active:
+            if not employee.is_active and not tenant.is_active:
                 return Response({"error": "Your account has been disabled."},
                                 status=status.HTTP_403_FORBIDDEN)
             Employee.objects.get(user=employee)

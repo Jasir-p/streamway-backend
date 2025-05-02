@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from tenant.serializer import TenantSerializer,CustomTokenObtainPairSerializer,CustomTokenRefreshSerializer
+from tenant.serializer import TenantSerializer,CustomTokenObtainPairSerializer,CustomTokenRefreshSerializer,TenantViewSerializer
 from django.contrib.auth.hashers import make_password
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
@@ -119,35 +119,34 @@ class TenantView(APIView):
     
 
     def get(self, request, id=None):
-        if id:
+        tenant_id = request.query_params.get("tenant_id")
+        if tenant_id:
            
             try:
-                tenant = Tenant.objects.get(id=id)
+                tenant = Tenant.objects.get(id=tenant_id)
+                with schema_context(tenant.schema_name):
+                    tenant_user_count = Employee.objects.count()
                 
-                serializer = TenantSerializer(tenant)
-                return Response(serializer.data, status=status.HTTP_200_OK)
+                serializer = TenantViewSerializer(tenant)
+                tenant_data = serializer.data
+                tenant_data['user_count']= tenant_user_count
+                return Response(tenant_data, status=status.HTTP_200_OK)
             except Tenant.DoesNotExist:
                 return Response(
                     {"error": "Tenant not found"},
                     status=status.HTTP_404_NOT_FOUND
                 )
         else:
-            # Retrieve all tenants
             tenant_user_count = {}
             tenants = Tenant.objects.all().order_by("id")
 
             for tenant in tenants:
                 with schema_context(tenant.schema_name):
                     tenant_user_count[tenant.id] = Employee.objects.count()
-
-                
-            
-            
-
             paginator = StandardResultsSetPagination()
             paginator.page_size = 10
             result_page = paginator.paginate_queryset(tenants, request)
-            serialize_data = TenantSerializer(result_page, many=True).data
+            serialize_data = TenantViewSerializer(result_page, many=True).data
             for tenany in serialize_data:
                 tenany['user_count'] = tenant_user_count[tenany['id']]
                                 
@@ -179,20 +178,23 @@ class TenantView(APIView):
             return Response({"error": str(e)},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-    def put(self, request, id, format=None):
-        # Update an existing tenant
-        try:
-            tenant = Tenant.objects.get(id=id)
-        except Tenant.DoesNotExist:
-            return Response(
-                {"error": "Tenant not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+    def put(self, request,format=None):
+            print(request.data)
+            tenant_id = request.query_params.get("tenant_id")
+            if not tenant_id:
+                return Response({"error": "Tenant ID is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = TenantSerializer(tenant, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                tenant = Tenant.objects.get(id=tenant_id)
+            except Tenant.DoesNotExist:
+                return Response({"error": "Tenant not found"}, status=status.HTTP_404_NOT_FOUND)
+
+            serializer = TenantSerializer(tenant, data=request.data, partial=True) 
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            print(serializer.errors)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, id, format=None):
         # Delete a tenant
@@ -289,10 +291,12 @@ class LoginView(APIView):
             if not user:
                 return Response({"error": "Invalid credentials."}, 
                                 status=status.HTTP_401_UNAUTHORIZED)
-           
+            
             with schema_context("public"):
                 tenant = get_object_or_404(Tenant, email=user.username)
                 domain = get_object_or_404(Domain, tenant=tenant)
+            if not tenant.is_active:
+                return Response({"error": "Your account is deactivated."}, status=status.HTTP_403_FORBIDDEN)
 
             user_profile = TenantSerializer(tenant)
             print(user_profile.data)
@@ -446,8 +450,6 @@ class CompanydetailView(APIView):
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
-    # Custom view to use the custom token serializer
-    
     serializer_class = CustomTokenObtainPairSerializer
 
 
@@ -455,3 +457,21 @@ class MyTokenRefreshView(TokenRefreshView):
     serializer_class = CustomTokenRefreshSerializer
 
 
+
+@api_view(["PATCH"])
+@permission_classes([AllowAny])
+def handle_active(request):
+    tenant_id = request.data.get("tenant_id")
+
+    if not tenant_id:
+        return Response({"error": "Tenant ID is required"}, status=400)
+
+    try:
+        tenant = Tenant.objects.get(id=int(tenant_id)) 
+        tenant.is_active = not tenant.is_active
+        tenant.save()
+        return Response({"success": True, "is_active": tenant.is_active})
+    except Tenant.DoesNotExist:
+        return Response({"error": "Tenant not found"}, status=404)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)

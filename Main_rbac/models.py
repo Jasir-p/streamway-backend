@@ -1,5 +1,5 @@
 from django.db import models
-from tenant.models import Tenant
+
 
 
 class Permission(models.Model):

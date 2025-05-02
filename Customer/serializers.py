@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Contact,Accounts
+from .models import Contact,Accounts,Notes
 from leads.models import Leads
 from leads.serializers import LeadsGetSerializer
 from users.models import Employee
@@ -167,3 +167,19 @@ class AccountCustomizedSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(f"Field '{key}' already exists in custom fields.")
         
         return data
+class AccountNotesSerializer(serializers.ModelSerializer):
+    created_by = serializers.PrimaryKeyRelatedField(
+        queryset=Employee.objects.all(), required=False, allow_null=True
+    )
+    account  = serializers.PrimaryKeyRelatedField(
+        queryset=Accounts.objects.all(), required=False, allow_null=True
+    )
+    class Meta:
+        model = Notes
+        fields = '__all__'
+class AccountNoteViewSerializer(serializers.ModelSerializer):
+    created_by = UserListViewSerializer(read_only=True)
+    account = AccountsViewSerializer(read_only=True)
+    class Meta:
+        model = Notes
+        fields = '__all__'

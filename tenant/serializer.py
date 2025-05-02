@@ -128,3 +128,7 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
         return data
 
 
+class TenantViewSerializer(serializers.ModelSerializer):
+    class Meta:
+         model = Tenant
+         fields = '__all__'

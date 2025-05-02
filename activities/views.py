@@ -10,6 +10,9 @@ from tenant.utlis.get_tenant import get_schema_name
 from django_tenants.utils import schema_context
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
+import stripe
+from users.models import Employee
+from django.db.models import Subquery,Q
 
 # Create your views here.
 
@@ -18,9 +21,19 @@ class TaskView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def get(self, request, *args, **kwargs):
-        
+        userid = request.query_params.get("assigned_to")
+        print(userid)
+ 
+
         try:
-            task = Task.objects.all()
+            if userid:
+                employees = Employee.objects.filter(
+                    Q(id=userid) | Q(role__parent_role=Subquery(Employee.objects.filter(id=userid).values("role")[:1]))
+                ).values_list("id", flat=True)
+
+                task =Task.objects.filter(assigned_to_employee__id__in=employees) 
+            else:
+                task = Task.objects.all()
             serializer = TaskViewSerializer(task, many=True, context={'request': request})
             return Response(serializer.data)
         except Exception as e:

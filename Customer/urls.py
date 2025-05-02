@@ -3,7 +3,8 @@ from .views import (
     AccountsView,
     assign_to_contact,
     account_overview,
-    AccountCustomisedView)
+    AccountCustomisedView,
+    AccountsNotesView)
 from django.urls import path
 
 
@@ -12,5 +13,6 @@ urlpatterns = [
     path('accounts/', AccountsView.as_view(), name='accounts'),
     path('contact-assign/',assign_to_contact, name='contact-assign' ),
     path('account-details/',account_overview, name="account-details"),
-    path('account-customized/',AccountCustomisedView.as_view(), name="account-customized")
+    path('account-customized/',AccountCustomisedView.as_view(), name="account-customized"),
+    path("notes/",AccountsNotesView.as_view(), name='notes')
 ]

@@ -76,7 +76,7 @@ class LeadsView(APIView):
     def get(self, request):
         userid = request.query_params.get("userId")
         print(userid)
-        print(get_schema_name(request))
+        
         try:
             if userid:
                 employees = Employee.objects.filter(

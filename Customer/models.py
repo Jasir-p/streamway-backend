@@ -58,8 +58,20 @@ class Accounts(models.Model):
        related_name='assigned_acounts'
 
     )
-    notes = models.TextField(blank=True)
+    
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
     custome_fields = models.JSONField(null=True, blank=True,default=None)
+
+
+class Notes(models.Model):
+    notes = models.TextField(blank=True)
+    account = models.ForeignKey(Accounts,on_delete=models.CASCADE, null=True,blank=True)
+    created_by = models.ForeignKey(
+    
+       Employee, on_delete=models.SET_NULL, null=True, blank=True,
+       related_name='created_notes'
+
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
