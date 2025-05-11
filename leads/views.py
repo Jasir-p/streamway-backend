@@ -2,9 +2,15 @@
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import LeadFormField, Leads,WebForm
+from .models import LeadFormField, Leads,WebForm,LeadNotes
 from rest_framework.permissions import IsAuthenticated
-from leads.serializers import LeadFormSerializers, LeadSerializers,WebformSerializer, LeadsGetSerializer, WebformListViewSerializer,LeadAssignSerializer
+from leads.serializers import( LeadFormSerializers, 
+                              LeadSerializers,WebformSerializer, 
+                              LeadsGetSerializer, 
+                              WebformListViewSerializer,
+                              LeadAssignSerializer,
+                              LeadNoteViewSerializer,
+                              LeadNoteSerializer)
 from rest_framework import status
 from tenant.pagination import StandardResultsSetPagination 
 from users.models import Employee
@@ -14,6 +20,7 @@ from django.db.models import Exists, OuterRef, Subquery,Q,When,BooleanField,Case
 from django.shortcuts import get_object_or_404
 from tenant.utlis.get_tenant import get_schema_name
 from Customer.serializers import ContactSerializer,AccountsSerilalizer
+
 
 
 class FormfieldView(APIView):
@@ -172,8 +179,13 @@ def lead_overview(request):
     try:
         lead_id = request.query_params.get("lead_id")
         Lead = Leads.objects.get(lead_id=lead_id)
+        lead_notes = LeadNotes.objects.filter(lead__lead_id=lead_id).order_by('-created_at')
         serializer = LeadsGetSerializer(Lead)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        note = LeadNoteViewSerializer(lead_notes, many=True)
+        response_data = serializer.data.copy()
+        response_data['notes'] = note.data
+
+        return Response(response_data, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
@@ -232,6 +244,34 @@ def lead_overview(request):
 #         except Exception as e:
 #             print(str(e))
 #             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class LeadNotesView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, *args, **kwargs):
+        try:
+            lead_id = request.GET.get("lead_id")
+            notes = LeadNotes.objects.filter(lead_id=lead_id).order_by("-created_at")
+            serializer = LeadNoteViewSerializer(notes, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            print(str(e))
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+    def post(self, request, *args, **kwargs):
+        try:
+            print(request.data)
+            serializer = LeadNoteSerializer(data=request.data)
+            
+            if serializer.is_valid():
+                
+                serializer.save()
+                print(serializer.data)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(str(e))
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 @api_view(["GET"])

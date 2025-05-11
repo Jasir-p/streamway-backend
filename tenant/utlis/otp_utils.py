@@ -34,7 +34,7 @@ def validate_otp(email, otp):
     otp_data = redis_client.hgetall(key)
 
     if not otp_data:
-        return "otp not found"
+         return False, "OTP not found"
     otp_get = otp_data.get("otp")
     created_at = otp_data.get("created_at")
     try:

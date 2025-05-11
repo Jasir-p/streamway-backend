@@ -2,7 +2,15 @@
 from .models import Contact, Accounts,Notes
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .serializers import ContactSerializer, ContactViewSerializer, AccountsSerilalizer, AccountsViewSerializer, ContactsAsssignSerializer, AccountCustomizedSerializer,AccountNotesSerializer,AccountNoteViewSerializer
+from .serializers import( ContactSerializer, 
+                        ContactViewSerializer, 
+                        AccountsSerilalizer, 
+                        AccountsViewSerializer, 
+                        ContactsAsssignSerializer, 
+                        AccountCustomizedSerializer,
+                        AccountNotesSerializer,
+                        AccountNoteViewSerializer,
+                        AccountAssignSerializer)
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from tenant.pagination import StandardResultsSetPagination
@@ -166,14 +174,16 @@ class AccountCustomisedView(APIView):
         print(key,value,is_editing)
 
         if "key" in request.data:
-            print(key)
+            print("jasir",key)
             if not is_editing:
+                if account.custome_fields is None :
+                    account.custome_fields = {}
                 if key in account.custome_fields:
                         return Response(
                             {"detail": f"Field '{key}' already exists in custom fields."},
                             status=400
                         )
-    
+                
                 account.custome_fields[key] = value
             else:
                 if key in account.custome_fields:
@@ -225,5 +235,18 @@ class AccountsNotesView(APIView):
             return Response ({"message":"successfully Added"}, status=status.HTTP_201_CREATED)
         
         return Response({"message":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def assign_to_account(request):
+    try:
+        serializer= AccountAssignSerializer(data=request.data,partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message":"Account assigned successfully"}, status=status.HTTP_200_OK)
+        return Response({"message":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({"message":str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
 

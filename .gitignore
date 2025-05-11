@@ -22,6 +22,8 @@ staticfiles/
 # Virtual Environment
 venv/
 .venv/
+.veenv/
+veenv/
 
 # IDE
 .idea/

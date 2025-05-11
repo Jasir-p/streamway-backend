@@ -1,6 +1,7 @@
 from django.urls import path
 from tenant.views import TenantView, RegisterTenant, SendOTPView, LoginView, CheckAuthView, MyTokenRefreshView,resend_otp_view,logout_user,CompanydetailView,handle_active
 from django.contrib import admin
+from billing import webhook_handler
 
 urlpatterns = [
      path('api/', CheckAuthView.as_view()),
@@ -19,7 +20,8 @@ urlpatterns = [
      path('logout/', logout_user, name='logout'),
      path('company_details/<int:company_id>', CompanydetailView.as_view(),
           name='company_details'),
-     path('tenant-access/', handle_active, name='tenant-access/')
+     path('tenant-access/', handle_active, name='tenant-access/'),
+     path('webhooks/stripe/', webhook_handler.stripe_webhook, name='stripe-webhook'),
 
    
 ]

@@ -8,6 +8,7 @@ from django_tenants.models import TenantMixin
 from .utlis.password_genarator import generate_password
 import redis
 import json
+from .models import TenantBilling
 
 redis_client = redis.StrictRedis(host='localhost', port=6379, db=0,
                                  decode_responses=True)
@@ -32,10 +33,9 @@ def create_tenant_owner(sender, **kwargs):
 
 
     
-    # Hash the password securely
+
     password_hash = make_password(password)
 
-    # Create the tenant owner in the public schema context
     with schema_context('public'): 
         User.objects.create(
           
@@ -44,3 +44,27 @@ def create_tenant_owner(sender, **kwargs):
             
         )
         print(f"Tenant owner created for tenant {schema_name} with username {tenant.email}.")
+
+@receiver(post_schema_sync, sender=TenantMixin)
+def create_tenant_billing(sender, **kwargs):
+    """
+    Creates a tenant billing when a new tenant schema is created and synced.
+    This is triggered after the schema for the tenant is created.
+    """
+    try:
+        tenant = kwargs['tenant']
+        schema_name = tenant.schema_name
+        print(f"Signal received for schema: {schema_name}")
+
+        with schema_context('public'):
+            TenantBilling.objects.create(
+                tenant=tenant,
+                billing_name=tenant.name,
+                billing_email=tenant.email
+            )
+            print(f"Tenant billing created for tenant {schema_name}.")
+    except Exception as e:
+        print(f"Error while creating tenant billing: {str(e)}")
+
+
+

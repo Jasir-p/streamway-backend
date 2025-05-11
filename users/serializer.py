@@ -123,8 +123,9 @@ class CustomRefreshSerializer(TokenRefreshSerializer):
 
 
 class TeamSerializer(serializers.ModelSerializer):
-    members = EmployeeSerializer(many=True, read_only=True)
     team_lead = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all())
+    members = EmployeeSerializer(many=True, read_only=True)
+
 
     class Meta:
         model = Team
@@ -142,7 +143,16 @@ class TeamSerializer(serializers.ModelSerializer):
         if Team.objects.filter(name__iexact=value).exclude(id=team_id).exists():
             raise serializers.ValidationError("Team name already exists")
         return value
-        
+    def validate_team_lead(self, value):
+        team_id = self.instance.id if self.instance else None
+        if (
+            Team.objects.filter(team_lead=value).exclude(id=team_id).exists() or
+            Team.objects.filter(members=value).exclude(id=team_id).exists()
+        ):
+            raise serializers.ValidationError("Team lead already exists in another team")
+        return value
+
+    
     def create(self, validated_data):
         team = Team.objects.create(**validated_data)
         return team
@@ -168,7 +178,7 @@ class TeamMembersSerializer(serializers.ModelSerializer):
         if TeamMembers.objects.filter(employee=value).exists():
             raise serializers.ValidationError("Employee already exists in the team")
         return value
-        
+    
     def create(self, validated_data):
         return TeamMembers.objects.create(**validated_data)
 

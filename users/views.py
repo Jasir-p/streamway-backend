@@ -365,7 +365,7 @@ class TeamManagmentView(APIView):
             serializer = TeamSerializer(data=request.data)
             if serializer.is_valid():
                 serializer.save()
-                return Response({"message": "Team created successfully"},
+                return Response({"message": "Team created successfully","team":serializer.data},
                                 status=status.HTTP_201_CREATED)
             return Response({"error": serializer.errors},
                             status=status.HTTP_400_BAD_REQUEST)
