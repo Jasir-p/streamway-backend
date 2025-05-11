@@ -1,13 +1,22 @@
 
-from .models import Contact, Accounts
+from .models import Contact, Accounts,Notes
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .serializers import ContactSerializer, ContactViewSerializer, AccountsSerilalizer, AccountsViewSerializer, ContactsAsssignSerializer, AccountCustomizedSerializer
+from .serializers import( ContactSerializer, 
+                        ContactViewSerializer, 
+                        AccountsSerilalizer, 
+                        AccountsViewSerializer, 
+                        ContactsAsssignSerializer, 
+                        AccountCustomizedSerializer,
+                        AccountNotesSerializer,
+                        AccountNoteViewSerializer,
+                        AccountAssignSerializer)
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from tenant.pagination import StandardResultsSetPagination
 from rest_framework.decorators import api_view, permission_classes
 from django.shortcuts import get_object_or_404
+from activities.serializers import TaskViewSerializer
 
 
 class ContactView(APIView):
@@ -79,6 +88,23 @@ class AccountsView(APIView):
         else:
             return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         
+    def patch(self, request):
+        account_id = request.query_params.get("account_id")
+        if not account_id:
+            return Response({"message": "Account ID not provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            account = Accounts.objects.get(id=account_id)
+        except Accounts.DoesNotExist:
+            return Response({"message": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = AccountsSerilalizer(account, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        
     def delete(self, request):
         try:
             account_ids = request.data.get("account_ids")
@@ -111,8 +137,20 @@ def account_overview(request):
     if not account_id:
         return Response({"detail": "Account ID is required."}, status=400)
     account = get_object_or_404(Accounts, id=account_id)
+    notes = Notes.objects.filter(account__id=account_id)
     serializer = AccountsViewSerializer(account)
-    return Response(serializer.data)
+    serializer_note = AccountNoteViewSerializer(notes, many=True)
+    print(serializer_note.data)
+    task_count = account.tasks.all()
+    task_data = TaskViewSerializer(task_count, many=True)
+    print(task_count)
+
+    response_data = serializer.data.copy()  # Convert to mutable dictionary
+    response_data['notes'] = serializer_note.data
+    response_data["tasks"]=task_data.data
+
+    return Response(response_data)
+
 
 
 class AccountCustomisedView(APIView):
@@ -136,14 +174,16 @@ class AccountCustomisedView(APIView):
         print(key,value,is_editing)
 
         if "key" in request.data:
-            print(key)
+            print("jasir",key)
             if not is_editing:
+                if account.custome_fields is None :
+                    account.custome_fields = {}
                 if key in account.custome_fields:
                         return Response(
                             {"detail": f"Field '{key}' already exists in custom fields."},
                             status=400
                         )
-    
+                
                 account.custome_fields[key] = value
             else:
                 if key in account.custome_fields:
@@ -178,4 +218,35 @@ class AccountCustomisedView(APIView):
             return Response({"message":"Removed SUccessfully","field":removed}, status=status.HTTP_200_OK)
         return Response({"message":"error occured"}, status=status.HTTP_400_BAD_REQUEST)
 
+
+class AccountsNotesView(APIView):
+    permission_classes=[IsAuthenticated]
+
+    def get(self,request):
+        notes = Notes.objects.all()
+        serializer =AccountNoteViewSerializer(notes, many=True)
+        return Response(serializer.data)
+        
+
+    def post(self,request, *args, **kwargs):
+        serializer = AccountNotesSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response ({"message":"successfully Added"}, status=status.HTTP_201_CREATED)
+        
+        return Response({"message":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def assign_to_account(request):
+    try:
+        serializer= AccountAssignSerializer(data=request.data,partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message":"Account assigned successfully"}, status=status.HTTP_200_OK)
+        return Response({"message":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({"message":str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
 

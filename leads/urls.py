@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import FormfieldView, LeadsView, get_employee, WebEnquiry, lead_assign, lead_overview, status_update,convert_to
+from .views import FormfieldView, LeadsView, get_employee, WebEnquiry, lead_assign, lead_overview, status_update,convert_to,LeadNotesView
 
 urlpatterns = [
     path('formfield/', FormfieldView.as_view(), name='formfield'),
@@ -11,4 +11,5 @@ urlpatterns = [
     path('lead-overview/', lead_overview, name='lead-overview'),
     path('lead_status/', status_update, name='status-update'),
     path('lead_conversion/', convert_to, name='lead_conversion'),
-]
+    path('lead-note/', LeadNotesView.as_view(), name='lead-note'),
+]   

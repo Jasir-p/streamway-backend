@@ -10,6 +10,12 @@ from tenant.utlis.get_tenant import get_schema_name
 from django_tenants.utils import schema_context
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
+import stripe
+from users.models import Employee
+from django.db.models import Subquery,Q
+from datetime import datetime, timedelta
+from django.utils import timezone
+
 
 # Create your views here.
 
@@ -18,9 +24,23 @@ class TaskView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def get(self, request, *args, **kwargs):
-        
+        print(datetime.now())
+        print(timedelta(days=30))
+        now = timezone.now()
+        print("checktime",now)
+        userid = request.query_params.get("assigned_to")
+        print(userid)
+ 
+
         try:
-            task = Task.objects.all()
+            if userid:
+                employees = Employee.objects.filter(
+                    Q(id=userid) | Q(role__parent_role=Subquery(Employee.objects.filter(id=userid).values("role")[:1]))
+                ).values_list("id", flat=True)
+
+                task =Task.objects.filter(assigned_to_employee__id__in=employees) 
+            else:
+                task = Task.objects.all()
             serializer = TaskViewSerializer(task, many=True, context={'request': request})
             return Response(serializer.data)
         except Exception as e:
@@ -41,10 +61,17 @@ class TaskView(APIView):
         
     
         
-    # def put(self, request, *args, **kwargs):
-    #     try:
-    #         task_id = request.data .get('id')
-
+    def put(self, request, *args, **kwargs):
+        try:
+            task_id = request.data .get('id')
+            task = Task.objects.get(id=task_id)
+            serializer = TaskSerializer(task,data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({serializer.data}, status=status.HTTP_200_OK)
+            return Response({"message":serializer.errors},status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"message":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def delete(self,request):
         print(request.data.get("task_id"))

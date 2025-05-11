@@ -1,2 +1,3 @@
 from django.shortcuts import render
-import stripe
+
+# Create your views here.

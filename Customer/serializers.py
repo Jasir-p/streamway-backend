@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Contact,Accounts
+from .models import Contact,Accounts,Notes
 from leads.models import Leads
 from leads.serializers import LeadsGetSerializer
 from users.models import Employee
@@ -167,3 +167,49 @@ class AccountCustomizedSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(f"Field '{key}' already exists in custom fields.")
         
         return data
+class AccountNotesSerializer(serializers.ModelSerializer):
+    created_by = serializers.PrimaryKeyRelatedField(
+        queryset=Employee.objects.all(), required=False, allow_null=True
+    )
+    account  = serializers.PrimaryKeyRelatedField(
+        queryset=Accounts.objects.all(), required=False, allow_null=True
+    )
+    class Meta:
+        model = Notes
+        fields = '__all__'
+class AccountNoteViewSerializer(serializers.ModelSerializer):
+    created_by = UserListViewSerializer(read_only=True)
+    account = AccountsViewSerializer(read_only=True)
+    class Meta:
+        model = Notes
+        fields = '__all__'
+
+
+class AccountAssignSerializer(serializers.Serializer):
+    assigned_to = serializers.IntegerField(required=True)
+    assigned_by = serializers.IntegerField(allow_null=True)
+    account_id = serializers.ListField(child=serializers.IntegerField(),required=True)
+
+
+    def validate(self, data):
+        assigned_by = data.get("assigned_by")
+        assigned_to = data.get("assigned_to")
+
+        if not Employee.objects.filter(id =assigned_to).exists():
+            raise serializers.ValidationError("Employee not found")
+        if assigned_by is not None and not Employee.objects.filter(id=assigned_by).exists():
+            raise serializers.ValidationError({"granted_by": "Granter not found"})
+        
+        if not Accounts.objects.filter(id__in=data.get("account_id")).exists():
+            raise serializers.ValidationError("Account not found")
+        
+        return data
+    
+    def save(self, **kwargs):
+        assigned_to = Employee.objects.get(id=self.validated_data.get("assigned_to"))
+        assigned_by_id = self.validated_data.get("assigned_by")
+        assigned_by = Employee.objects.get(id=assigned_by_id) if assigned_by_id else None
+        accounts = Accounts.objects.filter(id__in=self.validated_data.get("account_id"))
+        accounts.update(assigned_to=assigned_to, assigned_by=assigned_by)
+        
+

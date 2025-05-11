@@ -99,6 +99,15 @@ class Leads(models.Model):
 
 
 
+class LeadNotes(models.Model):
+    notes = models.TextField(blank=True)
+    lead = models.ForeignKey(Leads,on_delete=models.CASCADE, null=True,blank=True)
+    created_by = models.ForeignKey(
+    
+       Employee, on_delete=models.SET_NULL, null=True, blank=True,
+       related_name='created_lead_notes'
 
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
 
 

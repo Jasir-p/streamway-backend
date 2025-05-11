@@ -47,7 +47,11 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 # Application definition
 
 SHARED_APPS = [
+
+
     'django_tenants',
+    'channels',
+
     'corsheaders',
     'tenant',
     'django.contrib.admin',
@@ -57,10 +61,13 @@ SHARED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    
     'django_celery_results',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'Main_rbac',
+    'billing',
+
     
     
 ]
@@ -74,6 +81,7 @@ TENANT_APPS = ['rabc',
                ]
 INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
 
+ASGI_APPLICATION = 'streamway.asgi.application'
 
 REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
@@ -177,6 +185,15 @@ CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # or another result backend
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'check-tenant-billing-every-minute': {
+        'task': 'billing.tasks.check_all_tenants_billing',
+        'schedule': crontab(minute='*'),  # Run every minute
+    },
+}
+
 
 
 CACHES = {
@@ -258,3 +275,9 @@ TENANT_DOMAIN_MODEL = "tenant.Domain"
 PUBLIC_SCHEMA_NAME = 'public'
 SHOW_PUBLIC_IF_NO_TENANT_FOUND = True
 PUBLIC_SCHEMA_URLCONF = "tenant.urls"
+
+
+# Stripe Settings
+STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY")
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET")
