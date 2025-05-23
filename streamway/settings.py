@@ -76,12 +76,20 @@ TENANT_APPS = ['rabc',
                'users',
                'leads',
                'Customer',
-               'activities'
+               'activities',
+
+               'communications.apps.CommunicationsConfig'
 
                ]
 INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
 
 ASGI_APPLICATION = 'streamway.asgi.application'
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
+
 
 REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
@@ -143,7 +151,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'streamway.wsgi.application'
+
 
 
 # Database
@@ -192,6 +200,11 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'billing.tasks.check_all_tenants_billing',
         'schedule': crontab(minute='*'),  # Run every minute
     },
+    'check-task-duedate':
+    {
+        'task': 'activities.tasks.task_due_info',
+        'schedule': crontab(minute='*'),  
+    }
 }
 
 

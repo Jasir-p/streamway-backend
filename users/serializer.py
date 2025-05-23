@@ -82,7 +82,12 @@ class CustomEmployeeTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["email"] = emp.email
         token["permissions"] = list(RoleAcessPermission.objects.filter(role=emp.role).values_list("Permission__code_name", flat=True))
         tenant_name = connection.tenant.name
-        subdomain = connection.tenant.domain_url.split(".")[0]
+        domain_obj = connection.tenant.domains.first()
+        if domain_obj and domain_obj.domain:
+            subdomain = domain_obj.domain.split('.')[0]
+        else:
+            subdomain = "unknown"
+            print(subdomain)
 
         token["subdomain"] = subdomain
 
