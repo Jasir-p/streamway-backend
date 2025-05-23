@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>We’re Excited to Work With You!</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #ffffff;
+    }
+    .header {
+      background-color: #43a047;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 5px 5px 0 0;
+    }
+    .content {
+      background-color: #f9f9f9;
+      padding: 20px;
+      border-left: 1px solid #ddd;
+      border-right: 1px solid #ddd;
+    }
+    .footer {
+      background-color: #eeeeee;
+      padding: 15px;
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+      border-radius: 0 0 5px 5px;
+      border: 1px solid #ddd;
+    }
+    .highlight-box {
+      background-color: #e8f5e9;
+      border: 1px solid #c8e6c9;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    .button {
+      display: inline-block;
+      background-color: #43a047;
+      color: white;
+      padding: 12px 20px;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Welcome Aboard, {{ lead_name }}!</h1>
+  </div>
+
+  <div class="content">
+    <p>Hi {{ lead_name }},</p>
+
+    <div class="highlight-box">
+      <p><strong>Great news!</strong> You’ve been successfully moved to the next stage in our process at <strong>{{ company_name }}</strong>.</p>
+      <p>We’re excited to connect and explore how we can bring the most value to you.</p>
+    </div>
+
+    <p>Here’s what to expect next:</p>
+    <ul>
+      <li>One of our team members will be in touch shortly</li>
+      <li>You’ll receive a calendar invite for an introductory call</li>
+      <li>We’ll walk you through our offering and answer your questions</li>
+    </ul>
+
+    <p>If you'd like to prepare ahead or explore more:</p>
+    <div style="text-align: center;">
+      <a href="{{ company_website }}" class="button">Visit Our Website</a>
+    </div>
+
+    <p>If you have any immediate questions or needs, feel free to reply to this email or contact us directly.</p>
+
+    <p>Looking forward to speaking with you soon!</p>
+
+    <p>Warm regards,<br>
+    {{ sender_name }}<br>
+    {{ sender_position }}<br>
+    {{ company_name }}</p>
+  </div>
+
+  <div class="footer">
+    <p>© {{ current_year }} {{ company_name }}. All rights reserved.</p>
+    <p>{{ company_address }}</p>
+    <p><a href="{{ unsubscribe_link }}">Unsubscribe</a></p>
+  </div>
+</body>
+</html>

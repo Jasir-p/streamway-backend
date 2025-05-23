@@ -110,7 +110,7 @@ class TenantBilling(models.Model):
                 self.next_billing_date = timezone.now()
             else:
                 # Use current time + 10 mins instead of 00:00 AM + 10 mins
-                self.next_billing_date = timezone.now() + timedelta(minutes=10)
+                self.next_billing_date = timezone.now() + timedelta(minutes=5)
 
         
         super().save(*args, **kwargs)

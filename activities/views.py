@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from tenant.pagination import StandardResultsSetPagination
-from .models import Task
-from .serializers import TaskSerializer, TaskViewSerializer
+from .models import Task,Email
+from .serializers import TaskSerializer, TaskViewSerializer,EmailSerializer,EmailsViewSerializer
 from django.contrib.contenttypes.models import ContentType
 from tenant.utlis.get_tenant import get_schema_name
 from django_tenants.utils import schema_context
@@ -15,6 +15,7 @@ from users.models import Employee
 from django.db.models import Subquery,Q
 from datetime import datetime, timedelta
 from django.utils import timezone
+from tenant.utlis.get_tenant import get_schema_name
 
 
 # Create your views here.
@@ -94,4 +95,33 @@ class TaskDetailView(RetrieveUpdateDestroyAPIView):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated] 
+
+
+class EmailsView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, *args, **kwargs):
+        try:
+            emails = Email.objects.all()
+            serializer = EmailsViewSerializer(emails, many=True)
+            if serializer.data:
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response({"message":"No data found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"message":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    def post(self, request, *args, **kwargs):
+        try:
+            print(request.data)
+            schema = get_schema_name(request)
+            serializer = EmailSerializer(data=request.data,schema=schema)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data,status=status.HTTP_200_OK)
+            print(serializer.errors)
+            return Response({"message":serializer.errors},status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(str(e))
+            return Response({"message":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 

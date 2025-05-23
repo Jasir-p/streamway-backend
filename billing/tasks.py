@@ -18,7 +18,6 @@ def check_all_tenants_billing():
     Tenant = get_tenant_model()
     tenants = Tenant.objects.all()
     
-    # Process each tenant
     for tenant in tenants:
         check_tenant_billing.delay(tenant.id)
     
@@ -37,7 +36,7 @@ def check_tenant_billing(tenant_id):
         # Use tenant context to ensure we're using the right schema
         with tenant_context(tenant):
             try:
-                # Get tenant billing info
+                # billing info
                 billing = TenantBilling.objects.get(tenant=tenant)
                 
 
@@ -108,7 +107,7 @@ def generate_invoice(tenant_billing_id):
                 stripe_invoice = stripe.Invoice.create(
                     customer=billing.stripe_customer_id,
                     collection_method='send_invoice',
-                    days_until_due=14,  # Due in 14 days
+                    days_until_due=14,  
                     description=f"Monthly billing for {billing.tenant.name} - {user_count} users",
                     metadata={
                         'tenant_id': billing.tenant.id,
