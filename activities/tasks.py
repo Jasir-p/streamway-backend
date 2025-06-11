@@ -4,7 +4,7 @@ from .utlis.send_tenant_email import send_tenant_email
 from django_tenants.utils import schema_context
 from tenant.models import Tenant
 from datetime import date
-
+from django.utils import timezone
 @shared_task
 def tenant_mail_to(email_ids,schema):
     try:
@@ -40,6 +40,7 @@ def tenant_mail_to(email_ids,schema):
                        
                                     )
                     email.is_sent = True
+                    email.sent_at = timezone.now()
                     email.save()
 
             return True

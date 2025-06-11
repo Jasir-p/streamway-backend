@@ -37,7 +37,7 @@ from .pagination import StandardResultsSetPagination
 
 logger = logging.getLogger(__name__)
 
-redis_client = redis.StrictRedis(host='localhost', port=6379, db=0,
+redis_client = redis.StrictRedis(host='redis', port=6379, db=0,
                                  decode_responses=True)
 
 
@@ -161,6 +161,7 @@ class TenantView(APIView):
         
         email = request.data.get('email')
         try:
+            print("haloooooo")
 
             serializer = TenantSerializer(data=tenantdata)
             if serializer.is_valid():
@@ -175,6 +176,7 @@ class TenantView(APIView):
             return Response(serializer.errors, 
                             status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            print("hello",str(e))
             return Response({"error": str(e)},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         

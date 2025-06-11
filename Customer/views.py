@@ -17,7 +17,7 @@ from tenant.pagination import StandardResultsSetPagination
 from rest_framework.decorators import api_view, permission_classes
 from django.shortcuts import get_object_or_404
 from activities.serializers import TaskViewSerializer
-
+from leads.serializers import DealsViewserializer
 
 class ContactView(APIView):
     permission_classes = [IsAuthenticated]
@@ -47,6 +47,22 @@ class ContactView(APIView):
             )
         print(serializer.errors)
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    def patch(self, request, *args, **kwargs):
+        contact_id = request.query_params.get("contact_id")
+        if not contact_id:
+            return Response({"error": "Missing contact_id in query parameters"}, status=status.HTTP_400_BAD_REQUEST)
+
+        contact = get_object_or_404(Contact, pk=contact_id)
+        serializer = ContactSerializer(contact, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Contact updated", "contact": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+                                
 
         
     def delete(self, request, *args, **kwargs):
@@ -144,10 +160,15 @@ def account_overview(request):
     task_count = account.tasks.all()
     task_data = TaskViewSerializer(task_count, many=True)
     print(task_count)
+    contacts = account.contacts.all()
+    deals= account.deals.all()
+    
 
     response_data = serializer.data.copy()  # Convert to mutable dictionary
     response_data['notes'] = serializer_note.data
     response_data["tasks"]=task_data.data
+    response_data["contacts"]= ContactViewSerializer(contacts, many=True).data
+    response_data["deals"]=DealsViewserializer(deals, many=True).data
 
     return Response(response_data)
 
@@ -250,3 +271,13 @@ def assign_to_account(request):
         return Response({"message":str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
 
+# @api_view(['PATCH'])
+# @permission_classes([IsAuthenticated])
+# def contact_status(request):
+#     try:
+
+#         contact_id= request.query_params.get("contact_id")
+#         contact = get_object_or_404(Contact, pk=contact_id)
+#         serializer = ContactSerializer(contact, data=request.data, partial=True)
+#         if serializer.is_valid():
+#             serializer.save()

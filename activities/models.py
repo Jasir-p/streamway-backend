@@ -80,6 +80,27 @@ class Email(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     sent_at = models.DateTimeField(null=True, blank=True)
 
+class Meeting(models.Model):
+    status_choice = [
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
+    title = models.CharField(max_length=200)
+    description = models.TextField(null=True, blank=True)
+    start_time = models.DateTimeField()
+    duration = models.IntegerField(default=None)
+    host = models.ForeignKey(
+        Employee, on_delete=models.SET_NULL,
+        related_name='host_meetings', null=True
+    )
+    status = models.CharField(max_length=20, choices=status_choice, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(Employee, on_delete=models.SET_NULL, related_name='created_meetings', null=True)
+    contact = models.ForeignKey(Contact, on_delete=models.SET_NULL, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 
 
     

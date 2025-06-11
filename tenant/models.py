@@ -67,6 +67,7 @@ class TenantBilling(models.Model):
     is_active = models.BooleanField(default=True)
     last_billed_date = models.DateTimeField(blank=True, null=True)
     next_billing_date = models.DateTimeField(blank=True, null=True)
+    last_billing_status = models.BooleanField(default=False)
     
     def __str__(self):
         return f"Billing for {self.tenant.name}"
