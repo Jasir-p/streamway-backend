@@ -49,3 +49,4 @@ tmp/
 Thumbs.db
 
 celerybeat-schedule.*
+celerybeat-schedule.*
