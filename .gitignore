@@ -47,3 +47,6 @@ tmp/
 # System Files
 .DS_Store
 Thumbs.db
+
+celerybeat-schedule.*
+celerybeat-schedule.*

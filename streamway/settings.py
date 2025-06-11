@@ -51,6 +51,7 @@ SHARED_APPS = [
 
     'django_tenants',
     'channels',
+    'daphne',
 
     'corsheaders',
     'tenant',
@@ -67,6 +68,9 @@ SHARED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'Main_rbac',
     'billing',
+    'admin_panel',
+   
+
 
     
     
@@ -86,10 +90,12 @@ INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in S
 ASGI_APPLICATION = 'streamway.asgi.application'
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("redis", 6379)],
+        },
     },
 }
-
 
 REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
@@ -120,6 +126,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
 ]
 
 
@@ -189,10 +196,10 @@ EMAIL_HOST_PASSWORD = "prft tzuq vyii ftjq"  # App-specific password for Gmail
 # CELARY
 
 # or another broker like RabbitMQ
-CELERY_BROKER_URL = 'redis://localhost:6379/0'  
+CELERY_BROKER_URL = 'redis://redis:6379/0'  
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # or another result backend
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'  # or another result backend
 from celery.schedules import crontab
 
 CELERY_BEAT_SCHEDULE = {

@@ -22,7 +22,7 @@ from tenant.models import Tenant
 from rabc.models import Role
 import traceback
 
-redis_client = redis.StrictRedis(host='localhost', port=6379, db=0,
+redis_client = redis.StrictRedis(host='redis', port=6379, db=0,
                                  decode_responses=True)
 
 tenant_model = get_tenant_model()
@@ -400,6 +400,21 @@ class TeamManagmentView(APIView):
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+    def patch(self, request, *args, **kwargs):
+        team_id = request.data.get("team_id")
+        try:
+            team = Team.objects.get(id=team_id)
+            serializer = TeamSerializer(team, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({"message": "Team updated successfully","team":serializer.data},
+                                status=status.HTTP_200_OK)
+            return Response({"error": serializer.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": str(e)},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def delete(self, request):
         team_id = request.data.get("team_id")
@@ -465,45 +480,6 @@ class TeamMemberView(APIView):
 
 
 
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def change_team_lead(request):
-
-    try:
-        team_lead_id = request.data.get("lead_id")
-        team_id = request.data.get("team_id")
-        if not team_lead_id or not team_id:
-            return Response(
-                {"error": "Invalid request"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
-        new_lead = Employee.objects.get(id=team_lead_id)
-        team = Team.objects.get(id=team_id)
-        if new_lead not in team.members.all():
-            return Response({
-                "error": "The selected employee is not a member of this team"
-            },
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        if team.team_lead == new_lead:
-            return Response({"message": "This user is already the team lead"}, 
-                            status=status.HTTP_200_OK)
-        
-        team.team_lead = new_lead
-        team.save()
-        return Response({"message": "Team lead updated successfully"}, 
-                        status=status.HTTP_200_OK)
-    except Employee.DoesNotExist:
-        return Response({"error": "Employee not found"},
-                        status=status.HTTP_404_NOT_FOUND)
-    except Team.DoesNotExist:
-        return Response({"error": "Team not found"},
-                        status=status.HTTP_404_NOT_FOUND)
-
-    except Exception as e:
-        return Response({"error": str(e)}, 
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
 

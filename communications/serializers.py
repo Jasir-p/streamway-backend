@@ -1,7 +1,7 @@
 # chat/serializers.py
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import ChatRoom, Message
+from .models import ChatRoom, Message,Notifications
 from users.serializer import UserListViewSerializer
 
 
@@ -32,3 +32,11 @@ class ChatRoomSerializer(serializers.ModelSerializer):
         if last_message:
             return MessageSerializer(last_message).data
         return None
+    
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notifications
+        fields = "__all__"
+
+        

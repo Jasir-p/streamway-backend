@@ -7,9 +7,9 @@ from django.conf import settings
 from tenant.models import TenantBilling, Invoice
 from .serializers import TenantBillingSerializer, InvoiceSerializer
 from .tasks import generate_invoice
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.decorators import api_view,permission_classes
-
+from datetime import datetime,timedelta
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 class TenantBillingViewSet(viewsets.ModelViewSet):
@@ -82,7 +82,7 @@ class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
             )
         
         try:
-            # Retrieve the payment intent from Stripe
+
             payment_intent = stripe.PaymentIntent.retrieve(invoice.stripe_payment_intent_id)
             
             return Response({
@@ -95,20 +95,7 @@ class InvoiceViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
-    @action(detail=True, methods=['post'])
-    def mark_as_paid(self, request, pk=None):
-        """
-        Mark an invoice as paid (for testing purposes)
-        """
-        invoice = self.get_object()
-        
-        if invoice.status == 'paid':
-            return Response({'message': 'Invoice already paid'})
-        
-        invoice.status = 'paid'
-        invoice.save()
-        
-        return Response({'message': 'Invoice marked as paid'})
+
     
 
 
@@ -131,3 +118,51 @@ def get_invoice_status(request):
         return Response({"invoice":serializer.data},status=status.HTTP_200_OK)
     else:
         return Response({"status":False},status=status.HTTP_200_OK)
+    
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_all_tenant_bill(request):
+    tenants_billing = TenantBilling.objects.all().order_by("-id")
+    if not tenants_billing:
+        return Response({'error': 'Tenant billing information not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    serializer = TenantBillingSerializer(tenants_billing, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+class TenantBillingViewSet(viewsets.ModelViewSet):
+    queryset = TenantBilling.objects.all().order_by("-id")
+    serializer_class = TenantBillingSerializer
+    permission_classes = [AllowAny]
+
+
+    def list(self, request, *args, **kwargs):
+        if not self.queryset.exists():
+             return Response({'error': 'Tenant billing information not found'}, status=status.HTTP_404_NOT_FOUND)
+        return super().list(request, *args, **kwargs)
+    
+    @action(detail=False, methods=['get'])
+    def tenant_bill_invoices(self,request):
+        billing_id = request.GET.get('billing_id')
+        billing = TenantBilling.objects.filter(id=billing_id).first()
+        if not billing:
+            return Response({'error': 'Tenant billing information not found'}, status=status.HTTP_404_NOT_FOUND)
+        billing_invoices = Invoice.objects.filter(tenant_billing=billing).order_by("-id")
+        serializer = InvoiceSerializer(billing_invoices, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['POST'])
+    def mark_as_paid(self, request, pk):
+        invoice = Invoice.objects.filter(pk=pk).first()
+        if not invoice:
+            return Response({'error': 'Invoice not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        if invoice.status == 'paid':
+            return Response({'message': 'Invoice already paid'})
+
+        invoice.status = 'paid'
+        billing = invoice.tenant_billing
+        billing.last_billed_date = datetime.now()
+        billing.last_billing_status= True
+        invoice.save()
+        return Response({'message': 'Invoice marked as paid'})

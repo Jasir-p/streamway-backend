@@ -3,19 +3,20 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from tenant.pagination import StandardResultsSetPagination
-from .models import Task,Email
-from .serializers import TaskSerializer, TaskViewSerializer,EmailSerializer,EmailsViewSerializer
-from django.contrib.contenttypes.models import ContentType
-from tenant.utlis.get_tenant import get_schema_name
-from django_tenants.utils import schema_context
+from .models import Task,Email,Meeting
+from .serializers import TaskSerializer, TaskViewSerializer,EmailSerializer,EmailsViewSerializer,MeetingSerializer,MeetingViewSerializer
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
-import stripe
 from users.models import Employee
 from django.db.models import Subquery,Q
 from datetime import datetime, timedelta
 from django.utils import timezone
 from tenant.utlis.get_tenant import get_schema_name
+from communications.utlis.notification_handler import notification_set
+from rest_framework.decorators import api_view,permission_classes
+from Customer.models import Accounts,Contact
+from Customer.serializers import ContactViewSerializer
+
 
 
 # Create your views here.
@@ -50,9 +51,17 @@ class TaskView(APIView):
     def post(self, request, *args, **kwargs):
         print(request.data)
         try:
+            
+            user_id = request.data.get("assigned_to_employee")
+            
             serializer = TaskSerializer(data=request.data)
             if serializer.is_valid():
+                if request.data.get("assignTo") !="team":
+                    user = Employee.objects.get(id=user_id)
+                    notification_set(type="Task", message="Task Created",user=user)
+                
                 serializer.save()
+                
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             print(serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -125,3 +134,61 @@ class EmailsView(APIView):
 
 
 
+class MeetingView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        try:
+            meetings = Meeting.objects.all()
+            serializer = MeetingViewSerializer(meetings, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"message": f"Error fetching data: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        
+    def post(self, request, *args, **kwargs):
+        try:
+            serializer = MeetingSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data,status=status.HTTP_200_OK)
+            return Response({"message":serializer.errors},status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(str(e))
+            return Response({"message":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    def patch( self, request, *args, **kwargs):
+        try:
+            meeting_id = kwargs.get('meeting_id')
+            meeting = Meeting.objects.get(id=meeting_id)
+            serializer = MeetingSerializer(meeting, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data,status=status.HTTP_200_OK)
+            return Response({"message":serializer.errors},status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(str(e))
+            return Response({"message":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    def delete( self, request, *args, **kwargs):
+        try:
+            meeting_id = kwargs.get('meeting_id')
+            meeting = Meeting.objects.get(id=meeting_id)
+            meeting.delete()
+            return Response({"message": "Meeting deleted successfully"}, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            print(str(e))
+            return Response({"message":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_contacts_by_account(request,*args, **kwargs):
+    try:
+        account_id = kwargs.get('account_id')
+        conatcts = Contact.objects.filter(account_id__id=account_id)
+        serializer = ContactViewSerializer(conatcts, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    except Exception as e:
+        return Response({"message": f"Error fetching data: {str(e)}"}, status=status.HTTP_404_NOT_FOUND)

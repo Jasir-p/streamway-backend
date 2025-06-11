@@ -2,6 +2,7 @@ from django.db import models
 from users.models import Employee
 import random
 from django.db.models import SET_NULL
+from Customer.models import Accounts
 
 
 class LeadFormField(models.Model):
@@ -111,3 +112,62 @@ class LeadNotes(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
+class Deal(models.Model):
+    deal_id = models.CharField(
+      max_length=8, unique=True, blank=True,
+      primary_key=True      
+    )
+    STATUS_CHOICES = [
+        ('new', 'New'),
+        ('in_progress', 'In Progress'),
+        ('won', 'Won'),
+        ('lost', 'Lost'),
+    ]
+
+    PRIORITY_CHOICES = [
+        ('high', 'High'),
+        ('medium', 'Medium'),
+        ('low', 'Low'),
+    ]
+
+    STAGE_CHOICES = [
+        ('qualification', 'Qualification'),
+        ('proposal', 'Proposal'),
+        ('negotiation', 'Negotiation'),
+        ('closed_lost', 'Closed Lost'),
+        ('closed_won', 'Closed Won'),
+        ('discovery', 'Discovery'),
+
+
+    ]
+
+    account_id = models.ForeignKey(Accounts, on_delete=models.CASCADE,default=None, related_name="deals")
+    title = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='new')
+    stage = models.CharField(max_length=100, choices=STAGE_CHOICES, blank=True, null=True)
+    expected_close_date = models.DateField()
+
+    created_by = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True)
+
+
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, blank=True, null=True)
+    source = models.CharField(max_length=100, blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.title
+    
+    def generate_id(self):
+        while True:
+            unique_id = f"D{random.randint(100000, 999999)}"
+            if not Deal.objects.filter(deal_id=unique_id).exists():
+                return unique_id
+            
+    def save(self, *args, **kwargs):
+        if not self.deal_id:
+            self.deal_id = self.generate_id()
+        super(Deal, self).save(*args, **kwargs)

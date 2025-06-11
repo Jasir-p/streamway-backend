@@ -1,4 +1,4 @@
-from .models import Task,Email
+from .models import Task,Email,Meeting
 from rest_framework import serializers
 from users.models import Employee,Team
 from django.contrib.contenttypes.models import ContentType
@@ -6,8 +6,9 @@ from leads.serializers import LeadsGetSerializer
 from Customer.serializers import AccountsViewSerializer,ContactViewSerializer
 from leads.models import Leads
 from Customer .models import Accounts,Contact
-from users.serializer import UserListViewSerializer
+from users.serializer import UserListViewSerializer,TeamViewserilizer
 from .tasks import tenant_mail_to
+from datetime import datetime
 
 class TaskSerializer(serializers.ModelSerializer):
     # Remove content_type and related_object
@@ -62,6 +63,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
 class TaskViewSerializer(serializers.ModelSerializer):
     assigned_to_employee = UserListViewSerializer(read_only=True)
+    assigned_to_team = TeamViewserilizer(read_only=True)
     lead = LeadsGetSerializer(read_only=True)
     contact = ContactViewSerializer(read_only=True)
     account = AccountsViewSerializer(read_only=True)
@@ -160,3 +162,51 @@ class EmailsViewSerializer(serializers.ModelSerializer):
         if obj.to_account:
             return AccountsViewSerializer(obj.to_account).data
         return None
+
+class MeetingSerializer(serializers.ModelSerializer):
+    host = serializers.PrimaryKeyRelatedField(
+        queryset=Employee.objects.all(), required=False, allow_null=True
+    )
+    date = serializers.DateField(write_only=True)
+    time = serializers.TimeField(write_only=True)
+    created_by = serializers.PrimaryKeyRelatedField(
+        queryset=Employee.objects.all(), required=False, allow_null=True
+    )
+    contact = serializers.PrimaryKeyRelatedField(
+        queryset=Contact.objects.all(), required=False, allow_null=True
+    )
+
+    class Meta:
+        model = Meeting
+        fields = [
+            'id', 'title', 'description', 'date', 'time', 'start_time',
+            'duration', 'host', 'status', 'contact','created_by'
+        ]
+        read_only_fields = ['start_time']
+    def create(self, validated_data):
+        date = validated_data.pop('date')
+        time = validated_data.pop('time')
+        validated_data['start_time'] = datetime.combine(date, time)
+
+
+
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        date = validated_data.pop('date', None)
+        time = validated_data.pop('time', None)
+
+        if date and time:
+            validated_data['start_time'] = datetime.combine(date, time)
+
+        return super().update(instance, validated_data)
+
+class MeetingViewSerializer(serializers.ModelSerializer):
+    host = UserListViewSerializer(read_only =True)
+    created_by = UserListViewSerializer(read_only =True)
+    contact = ContactViewSerializer(read_only =True)
+
+    class Meta:
+        model = Meeting
+        fields = "__all__"
+    
