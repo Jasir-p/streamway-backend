@@ -48,6 +48,7 @@ def handle_invoice_paid(invoice_obj):
     """
     Handle when an invoice is paid
     """
+    print("webinvoice2")
     try:
         # Find the invoice in our database
         invoice = Invoice.objects.get(stripe_invoice_id=invoice_obj.id)
@@ -89,17 +90,16 @@ def handle_payment_succeeded(payment_intent):
     """
     Handle when a payment intent succeeds
     """
+    print("webinvoice1")
     try:
-        # Find the invoice with this payment intent
         invoice = Invoice.objects.get(stripe_payment_intent_id=payment_intent.id)
         invoice.status = 'paid'
         invoice.paid_at = datetime.now()
         invoice.save()
-        
-        # Update the tenant billing info
+
         billing = invoice.tenant_billing
         billing.last_billed_date = datetime.now()
+        billing.last_billing_status= True
         billing.save()
     except Invoice.DoesNotExist:
-        # Log error or handle missing invoice
         pass

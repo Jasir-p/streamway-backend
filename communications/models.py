@@ -23,3 +23,12 @@ class Message(models.Model):
     timestamp =  models.DateTimeField(auto_now_add=True)
     read_by = models.ManyToManyField(Employee, related_name='read_messages', blank=True)
 
+
+class Notifications(models.Model):
+    user = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='notifications',blank=True,null=True)
+    type = models.CharField(max_length=40)
+    message = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+    is_clear = models.BooleanField(default=False)
+

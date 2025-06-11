@@ -132,6 +132,7 @@ def generate_invoice(tenant_billing_id):
 
                 invoice.stripe_invoice_id = stripe_invoice.id
                 invoice.save()
+                billing.billing_expiry = timezone.now() + timedelta(days=2)
                 billing.next_billing_date = timezone.now() + timedelta(days=30)
                 billing.save()
                 

@@ -36,6 +36,8 @@ urlpatterns = [
     path('api/', include("activities.urls")),
     path('', include("billing.urls")),
     path('',include("communications.urls")),
+    path('api/',include("admin_panel.urls"))
+
     
     
 ]

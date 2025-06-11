@@ -1,9 +1,11 @@
 from rest_framework import serializers
-from .models import LeadFormField, Leads,WebForm,LeadNotes
+from .models import LeadFormField, Leads,WebForm,LeadNotes,Deal
 from users.models import Employee
 from users.serializer import EmployeeSerializer,UserListViewSerializer
 from .tasks import create_lead_from_webform
 from tenant.utlis.get_tenant import get_schema_name
+from Customer.models import Accounts
+from Customer.serializers import AccountsViewSerializer
 
 
 
@@ -262,5 +264,25 @@ class LeadNoteViewSerializer(serializers.ModelSerializer):
     class Meta:
         model = LeadNotes
         fields = "__all__"
+class DealsSerializer(serializers.ModelSerializer):
+    created_by = serializers.PrimaryKeyRelatedField(
+        queryset=Employee.objects.all(), required=False, allow_null=True
+    )
+    account_id = serializers.PrimaryKeyRelatedField(
+        queryset=Accounts.objects.all(), required=False, allow_null=True)
+    
+    class Meta:
+        model = Deal
+        fields = "__all__"
+
+class DealsViewserializer(serializers.ModelSerializer):
+    created_by = UserListViewSerializer(read_only=True)
+    account_id = AccountsViewSerializer(read_only=True)
+
+    class Meta:
+        model = Deal
+        fields = "__all__"
+
+    
 
     
