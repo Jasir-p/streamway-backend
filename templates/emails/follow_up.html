@@ -1,101 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Follow-Up Email</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .header {
-            background-color: #4a6fa5;
-            color: white;
-            padding: 20px;
-            text-align: center;
-            border-radius: 5px 5px 0 0;
-        }
-        .content {
-            background-color: #f9f9f9;
-            padding: 20px;
-            border-left: 1px solid #ddd;
-            border-right: 1px solid #ddd;
-        }
-        .footer {
-            background-color: #eeeeee;
-            padding: 15px;
-            text-align: center;
-            font-size: 12px;
-            color: #666;
-            border-radius: 0 0 5px 5px;
-            border: 1px solid #ddd;
-        }
-        .button {
-            display: inline-block;
-            background-color: #4CAF50;
-            color: white;
-            padding: 12px 20px;
-            text-decoration: none;
-            border-radius: 4px;
-            font-weight: bold;
-            margin: 20px 0;
-        }
-        .highlight {
-            background-color: #ffffcc;
-            padding: 10px;
-            border-left: 4px solid #ffeb3b;
-            margin: 20px 0;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Follow-Up Email</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      background-color: #4a6fa5;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 5px 5px 0 0;
+    }
+    .content {
+      background-color: #f9f9f9;
+      padding: 20px;
+      border-left: 1px solid #ddd;
+      border-right: 1px solid #ddd;
+    }
+    .footer {
+      background-color: #eeeeee;
+      padding: 15px;
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+      border-radius: 0 0 5px 5px;
+      border: 1px solid #ddd;
+    }
+    .button {
+      display: inline-block;
+      background-color: #4CAF50;
+      color: white;
+      padding: 12px 20px;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+    .highlight {
+      background-color: #fffde7;
+      padding: 15px;
+      border-left: 5px solid #fbc02d;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+  </style>
 </head>
 <body>
-    <div class="header">
-        <h1>{{ tenant.name }}</h1>
+  <div class="header">
+    <h1>{{ tenant.name }}</h1>
+  </div>
+
+  <div class="content">
+    <p>Hello {{ data.name }},</p>
+
+    <p>I hope you're doing well. I'm reaching out to follow up on our recent conversation.</p>
+
+    <div class="highlight">
+      <p><strong>Here are a few helpful reminders:</strong></p>
+      <ul>
+        <li>We appreciate your time and interest.</li>
+        <li>Feel free to reach out if you have any questions.</li>
+        <li>We’re always here to support you with the next steps.</li>
+      </ul>
     </div>
 
-    <div class="content">
-        <p>Hello {{ data.name }},</p>
+    <p>If you'd like to reconnect or continue the discussion, you can schedule a quick meeting at your convenience:</p>
 
-        <p>I hope you're doing well. I'm reaching out to follow up on our recent conversation regarding <strong>{{ discussion_topic }}</strong>.</p>
-
-        <div class="highlight">
-            <p>Here are a few key points we discussed or that might be helpful moving forward:</p>
-            <ul>
-                <li>{{ point_1 }}</li>
-                <li>{{ point_2 }}</li>
-                <li>{{ point_3 }}</li>
-            </ul>
-        </div>
-
-        <p>If you’d like to continue the conversation or need further clarification, I’d be happy to set up a quick meeting.</p>
-
-        <p>Click the button below to schedule a time that works best for you:</p>
-
-        <div style="text-align: center;">
-            <a href="{{ schedule_link }}" class="button">Book a Time</a>
-        </div>
-
-        <p>Thanks again for your interest. I look forward to staying in touch.</p>
-
-        <p>Warm regards,<br>
-        {{ instance.sender.name }}<br>
-        {{ instance.sender.role.name }}<br>
-        {{ tenant.name }}<br>
-        {{ tenant.contact }}</p>
+    <div style="text-align: center;">
+      <a href="{{ schedule_link }}" class="button">Book a Time</a>
     </div>
 
-    <div class="footer">
-        <p>© {{ current_year }} {{ tenant.name }}. All rights reserved.</p>
-        <p>{{ tenant.address }}</p>
-        <p>
-            <a href="{{ unsubscribe_link }}">Unsubscribe</a> |
-            <a href="{{ privacy_policy }}">Privacy Policy</a>
-        </p>
-    </div>
+    <p>Thanks again. We look forward to staying in touch.</p>
+
+    <p>Warm regards,<br>
+    {{ instance.sender.name }}<br>
+    {{ instance.sender.role.name }}<br>
+    {{ tenant.name }}<br>
+    {{ tenant.contact }}</p>
+  </div>
+
+  <div class="footer">
+    <p>© {{ current_year }} {{ tenant.name }}. All rights reserved.</p>
+    <p>{{ tenant.address }}</p>
+    <p>
+      <a href="{{ unsubscribe_link }}">Unsubscribe</a> |
+      <a href="{{ privacy_policy }}">Privacy Policy</a>
+    </p>
+  </div>
 </body>
 </html>

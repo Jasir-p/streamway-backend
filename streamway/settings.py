@@ -81,6 +81,7 @@ TENANT_APPS = ['rabc',
                'leads',
                'Customer',
                'activities',
+               'tenant_panel',
 
                'communications.apps.CommunicationsConfig'
 

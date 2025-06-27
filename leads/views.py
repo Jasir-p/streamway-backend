@@ -1,8 +1,7 @@
 
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import LeadFormField, Leads,WebForm,LeadNotes,Deal
+from .models import LeadFormField, Leads,WebForm,LeadNotes,Deal,DealNotes
 from rest_framework.permissions import IsAuthenticated
 from leads.serializers import( LeadFormSerializers, 
                               LeadSerializers,WebformSerializer, 
@@ -12,7 +11,9 @@ from leads.serializers import( LeadFormSerializers,
                               LeadNoteViewSerializer,
                               LeadNoteSerializer,
                               DealsSerializer,
-                              DealsViewserializer)
+                              DealsViewserializer,
+                              DealNotesSerializer,
+                              DealNotesViewSerializer)
 
 from rest_framework import status
 from tenant.pagination import StandardResultsSetPagination 
@@ -24,6 +25,9 @@ from django.shortcuts import get_object_or_404
 from tenant.utlis.get_tenant import get_schema_name
 from Customer.serializers import ContactSerializer,AccountsSerilalizer
 from activities.serializers import TaskViewSerializer
+from users.utlis.employee_hierarchy import get_employee_and_subordinates_ids
+from .services import get_deal_status_summary,get_lead_status_summary
+from django.utils import timezone
 
 
 
@@ -33,13 +37,11 @@ class FormfieldView(APIView):
     def get(self, request):
         formfields = LeadFormField.objects.all()
         serializer = LeadFormSerializers(formfields, many=True)
-        print(serializer.data)
         return Response({'formfields': serializer.data})
     
     def post(self, request, *args, **kwargs):
         
         if request.data:
-            print(request.data)
             serializer = LeadFormSerializers(data=request.data)
             if serializer.is_valid():
                 serializer.save()
@@ -67,7 +69,6 @@ class FormfieldView(APIView):
                     
     def delete(self, request):
         field_id = request.data.get('field_id')
-        print(field_id)
         if not field_id:
             return Response({'message': 'Please provide field id'},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -86,38 +87,27 @@ class LeadsView(APIView):
 
     def get(self, request):
         userid = request.query_params.get("userId")
-        print(userid)
         
         try:
             if userid:
-                employees = Employee.objects.filter(
-                    Q(id=userid) | Q(role__parent_role=Subquery(Employee.objects.filter(id=userid).values("role")[:1]))
-                ).values_list("id", flat=True)
+                employees = get_employee_and_subordinates_ids(userid)
                 leads = Leads.objects.filter(employee__in=employees).order_by("-created_at")
 
             else:
                 leads = Leads.objects.all().order_by("-created_at")
-            
-            print(leads)
-                
+
             paginator = StandardResultsSetPagination()
             result_page = paginator.paginate_queryset(leads, request)
             serializer = LeadsGetSerializer(result_page, many=True)
             return paginator.get_paginated_response(serializer.data)
         except Exception as e:
-            print(str(e))
             return Response(
-                
                 {'error': str(e)}, status=status.HTTP_400_BAD_REQUEST
-            
             )
 
     def post(self, request, *args, **kwargs):
         schema = get_schema_name(request)
-        print(schema)
-        
         if request.data:
-            print(request.data)
             serializer = LeadSerializers(data=request.data, schema=schema)
             if serializer.is_valid():
                 instance = serializer.save()
@@ -141,10 +131,8 @@ class LeadsView(APIView):
             )
         
     def patch(self, request, *args, **kwargs):
-        print(request.data)
         
         lead_id = request.data.get("lead_id")
-        print(lead_id)
         lead = get_object_or_404(Leads, lead_id=lead_id)
         serilaizer = LeadSerializers(lead, data=request.data, partial=True)
         if serilaizer.is_valid():
@@ -153,7 +141,6 @@ class LeadsView(APIView):
               {'message': 'Lead updated successfully','lead':serilaizer.data},
               status=status.HTTP_200_OK
             )
-        print(serilaizer.errors)
         return Response(serilaizer.errors, status=status.HTTP_400_BAD_REQUEST)
         
     def delete(self, request, *args, **kwargs):
@@ -165,10 +152,8 @@ class LeadsView(APIView):
                 return Response(
                     {'message': 'No leads id provided'},
                     status=status.HTTP_400_BAD_REQUEST
-                )
-            
+                ) 
             leads = Leads.objects.filter(lead_id__in=leads_id)
-            print(leads)
             leads.delete()
             return Response(    
                 {'message': 'Leads deleted successfully'},
@@ -207,22 +192,16 @@ class LeadNotesView(APIView):
             serializer = LeadNoteViewSerializer(notes, many=True)
             return Response(serializer.data)
         except Exception as e:
-            print(str(e))
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
     def post(self, request, *args, **kwargs):
         try:
-            print(request.data)
-            serializer = LeadNoteSerializer(data=request.data)
-            
-            if serializer.is_valid():
-                
+            serializer = LeadNoteSerializer(data=request.data)           
+            if serializer.is_valid():                
                 serializer.save()
-                print(serializer.data)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            print(str(e))
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -233,22 +212,18 @@ def get_employee(request):
     
     try:
         role = request.query_params.get("role")
-        print(role)
         if role == "owner" and role:
             employees = Employee.objects.all()
         else:
 
             user_id = request.query_params.get("user_id")
-            print(user_id)
             employee = Employee.objects.get(id=user_id)
-            print(employee)
             employees = Employee.objects.filter(
                 role__parent_role=employee.role
             )
         serializer = UserListViewSerializer(employees, many=True)
         return Response(serializer.data)
     except Exception as e:
-        print(str(e))
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     
@@ -275,7 +250,6 @@ class WebEnquiry(APIView):
             serializer = WebformListViewSerializer(enquiry_data, many=True)
             return Response(serializer.data)
         except Exception as e:
-            print(str(e))
             return Response(
                 {'error': str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
@@ -289,13 +263,11 @@ class WebEnquiry(APIView):
                     {'message': 'Enquiry submitted'}, status=status.HTTP_200_OK
                 )
             else:
-                print(serializer.errors)
                 return Response(
                     {"detail":"Invalid input", "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
                 )
         
         except Exception as e:
-            print(str(e))
             return Response(
                 {'error': str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
@@ -303,7 +275,6 @@ class WebEnquiry(APIView):
     def delete(self, request, *args, **kwargs):
         try:
             enquiry_id = request.data.get("enquiryIds")
-            print(enquiry_id)
             if isinstance(enquiry_id, str):
                 enquiry_id = [enquiry_id]
             if not enquiry_id:
@@ -320,7 +291,6 @@ class WebEnquiry(APIView):
             
             )
         except Exception as e:
-            print(str(e))
             return Response(
                 {'error': str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
@@ -329,7 +299,6 @@ class WebEnquiry(APIView):
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
 def lead_assign(request):
-    print(request.data)
     try:
         serializer = LeadAssignSerializer(data=request.data, partial=True)
         if serializer.is_valid():
@@ -337,13 +306,10 @@ def lead_assign(request):
             return Response(
                 {'message': 'Lead assigned'}, status=status.HTTP_200_OK
             )
-        print("theline", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)   
     except Exception as e:
-        print(str(e))
-
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
+    
 
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
@@ -360,20 +326,16 @@ def status_update(request):
         if not isinstance(lead_ids, list):
             lead_ids = [lead_ids]
         valid_status = [choice[0] for choice in Leads.STATUS_CHOICES]
-        print(status_label)
-        print(valid_status)
         if status_label not in valid_status:
             return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
         lead = Leads.objects.filter(lead_id__in=lead_ids)
         if not lead.exists():
             return Response({'error': 'Lead not found'}, status=status.HTTP_400_BAD_REQUEST)
-
         lead.update(status=status_label)
         return Response(
             {'message': 'Status updated'}, status=status.HTTP_200_OK
         )
     except Exception as e:
-        print(str(e))
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
 @api_view(["POST"])
@@ -388,45 +350,36 @@ def convert_to(request):
         if  not customer:
             return Response({'error': 'Either customer is required'}, status=status.HTTP_400_BAD_REQUEST)
         result = {}
-        if customer:
-            print("haii")
-            customer_serializer = AccountsSerilalizer(data=request.data)
-            if customer_serializer.is_valid():
-                customer_serializer.save()
-                result['customer'] = customer_serializer.data
-            else:
-                print(customer_serializer.errors)
-                return Response(
-                    {"error": customer_serializer.errors},
-                    status=status.HTTP_400_BAD_REQUEST
-                    )
+
+        customer_serializer = AccountsSerilalizer(data=request.data)
+        if customer_serializer.is_valid():
+            customer_serializer.save()
+            result['customer'] = customer_serializer.data
+        else:
+            return Response(
+                {"error": customer_serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST
+                )
+        
         return Response(
             
             {
                 'message': 'Lead converted successfully', 
                 'data': result}, status=status.HTTP_200_OK
-        
-        )
-
+                )
     except Exception as e:
-        print(str(e))
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
 
-        
+
 class DealView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         userid = request.query_params.get("userId")
-        print(userid)
-        
         try:
             if userid:
-                employees = Employee.objects.filter(
-                    Q(id=userid) | Q(role__parent_role=Subquery(Employee.objects.filter(id=userid).values("role")[:1]))
-                ).values_list("id", flat=True)
-                Deals = Deal.objects.filter(account_id__assigned_to__in=employees).order_by("-created_at")
+                employees =get_employee_and_subordinates_ids(userid)
+                Deals = Deal.objects.filter(owner__in=employees).order_by("-created_at")
 
             else:
                 Deals = Deal.objects.all().order_by("-created_at")
@@ -436,21 +389,18 @@ class DealView(APIView):
             serializer = DealsViewserializer(result_page, many=True)
             return paginator.get_paginated_response(serializer.data)
         except Exception as e:
-            print(str(e))
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     def post(self, request, *args, **kwargs):
         try:
             deal_serializer = DealsSerializer(data=request.data)
             if deal_serializer.is_valid():
-                deal_serializer.save()
-                return Response({'message': 'Deal created successfully', 'data': deal_serializer.data}, status=status.HTTP_201_CREATED)
+                deal_view= deal_serializer.save()
+                
+                return Response({'message': 'Deal created successfully', 'data': DealsViewserializer(deal_view).data}, status=status.HTTP_201_CREATED)
             else:
-                print(deal_serializer.errors)
-
                 return Response({'error': deal_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            print(str(e))
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
     def patch(self, request, *args, **kwargs):
@@ -477,8 +427,6 @@ class DealView(APIView):
                         {'error': 'No valid deals found for provided IDs'},
                         status=status.HTTP_404_NOT_FOUND
                     )
-
-                # Apply updates to each deal
                 updated_deals = []
                 for deal in deals:
                     for key, value in updates.items():
@@ -498,10 +446,73 @@ class DealView(APIView):
 
             
         
-
-                       
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_deal_overview(request,*args, **kwargs):
+    deal_id = request.query_params.get("dealId")
+    if not deal_id:
+        return Response({'error': 'No deal ID provided'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        deal = Deal.objects.get(deal_id=deal_id)
+        deal_notes = deal.notes.all().order_by('-created_at')
+        deal_contact = deal.account_id.contacts.filter(is_primary_contact=True).first()
+        serializer = DealsViewserializer(deal)
+        response_data = serializer.data.copy()
+        response_data['dealContact'] = ContactSerializer(deal_contact).data if deal_contact else {}
+        response_data['dealNotes'] = DealNotesViewSerializer(deal_notes, many=True).data
+        return Response(response_data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-        
+
+
+class DealNoteView (APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            serializer = DealNotesSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def sales_pipeline(request, *args, **kwargs):
+    user_id = request.query_params.get("userId")
+    try:
+        if user_id:
+            employee_ids = get_employee_and_subordinates_ids(user_id)
+            leads = Leads.objects.filter(employee__in=employee_ids).order_by("-created_at")
+            deals = Deal.objects.filter(owner__in=employee_ids).order_by("-created_at")
+
+            lead_status_summary = get_lead_status_summary(employee_ids)
+            deal_status_summary = get_deal_status_summary(employee_ids)
+        else:
+            leads = Leads.objects.all().order_by("-created_at")
+            deals = Deal.objects.all().order_by("-created_at")
+
+            lead_status_summary = get_lead_status_summary()
+            deal_status_summary = get_deal_status_summary()
+
+        latest_leads = LeadsGetSerializer(leads[:5], many=True).data
+        latest_deals = DealsViewserializer(deals[:5], many=True).data
+
+        data = {
+            "latest_leads": latest_leads,
+            "latest_deals": latest_deals,
+            "lead_status_summary": list(lead_status_summary),
+            "deal_status_summary": list(deal_status_summary),
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 

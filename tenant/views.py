@@ -1,7 +1,6 @@
 from django.shortcuts import render
 from tenant.serializer import TenantSerializer,CustomTokenObtainPairSerializer,CustomTokenRefreshSerializer,TenantViewSerializer
 from django.contrib.auth.hashers import make_password
-from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView
 from .models import Tenant, Domain
@@ -10,30 +9,24 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from .utlis.otp_utils import generate_otp, validate_otp
 from .tasks import send_otp_email_task,send_login_credential
-from celery import shared_task
 from django.conf import settings
 import redis
 import json
 from django.contrib.auth import authenticate, login
-from django.views.decorators.csrf import csrf_exempt
-
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
-
 from django.db import connection,transaction
 from django.http import HttpResponse
 from django_tenants.utils import connection
 from django.http import JsonResponse
-import jwt
 from django.contrib.auth.models import User  # If users exist in Django
 from django.shortcuts import get_object_or_404
-import datetime
 from django_tenants.utils import schema_context, get_tenant_model, get_tenant_domain_model
 import logging
 from django.contrib.auth.models import User
 from rest_framework.decorators import api_view, permission_classes
 from users.models import Employee
 from .pagination import StandardResultsSetPagination
-
+from admin_panel.tasks import log_user_activity_task
 
 logger = logging.getLogger(__name__)
 
@@ -245,7 +238,9 @@ class RegisterTenant(APIView):
             # Save tenant data to the database
             serializer = TenantSerializer(data=tenant_data)
             if serializer.is_valid():
+                
                 tenant = serializer.save()
+                log_user_activity_task(tenant.name,"Tenant created")
                 
                 # Create a domain for the tenant
                 domain_name = f"{tenant.schema_name}.localhost"
