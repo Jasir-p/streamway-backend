@@ -6,6 +6,7 @@ from django.views.decorators.http import require_POST
 from django.conf import settings
 from datetime import datetime,timedelta
 from tenant.models import TenantBilling, Invoice
+from admin_panel.tasks import log_user_activity_task
 
 @csrf_exempt
 @require_POST
@@ -61,6 +62,7 @@ def handle_invoice_paid(invoice_obj):
         billing = invoice.tenant_billing
         billing.last_billed_date = datetime.now()
         billing.save()
+        log_user_activity_task(billing.tenant.name,"Invoice Paid")
     except Invoice.DoesNotExist:
         # Log error or handle missing invoice
         pass

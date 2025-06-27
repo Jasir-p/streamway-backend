@@ -130,7 +130,7 @@ def get_all_tenant_bill(request):
     serializer = TenantBillingSerializer(tenants_billing, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
-class TenantBillingViewSet(viewsets.ModelViewSet):
+class AdminBillingViewSet(viewsets.ModelViewSet):
     queryset = TenantBilling.objects.all().order_by("-id")
     serializer_class = TenantBillingSerializer
     permission_classes = [AllowAny]

@@ -1,9 +1,10 @@
 from rest_framework import serializers
 from .models import Contact,Accounts,Notes
-from leads.models import Leads
+from leads.models import Leads,Deal
 
 from users.models import Employee
 from users.serializer import UserListViewSerializer
+from django.utils import timezone
 
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -66,7 +67,11 @@ class AccountsSerilalizer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
+        print(validated_data)
         leads = [lead for lead in validated_data.pop('lead', []) if lead]
+        is_deal = self.initial_data.get("create_deal", False)
+        deal_amount= self.initial_data.get("deal_amount", 0)
+        assigned_by = validated_data.pop('assigned_by', None)
         leads_data = Leads.objects.filter(lead_id__in=leads)
         leads_dict = {lead.lead_id: lead for lead in leads_data}
         if leads:
@@ -77,7 +82,11 @@ class AccountsSerilalizer(serializers.ModelSerializer):
                         name=lead_data.name,
                         email=lead_data.email,
                         phone_number=lead_data.phone_number,
-                        lead=lead_data
+                        address =lead_data.location,
+                        lead=lead_data,
+                        assigned_to=lead_data.employee,
+                        assigned_by=assigned_by
+
                     )
                     Contact.objects.create(
                         name=lead_data.name,
@@ -86,6 +95,17 @@ class AccountsSerilalizer(serializers.ModelSerializer):
                         account_id=account,
                         is_primary_contact =True
                     )
+                    print("check",is_deal)
+                    if is_deal:
+                        print("check",is_deal)
+                        date_str= timezone.now().strftime("%Y-%m-%d")
+                        Deal.objects.create(
+                            account_id=account,
+                            title = f"Deal for {account.name} - {date_str}",
+                            owner = account.assigned_to,
+                            created_by = account.assigned_by,
+                            amount=deal_amount,
+                            expected_close_date= timezone.now().date() + timezone.timedelta(days=30),)
                     
                 
             return True

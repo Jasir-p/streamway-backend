@@ -125,6 +125,9 @@ class CustomTenantMiddleware:
                     request.role = decoded_token.get("role", None)
                     request.permissions = decoded_token.get("permissions", [])
                     request.subdomain = decoded_token.get("subdomain", None)
+                    
+                    if request.subdomain is None and request.role != "admin":
+                        return JsonResponse({"error": "Subdomain required"}, status=400)
                 except Exception as e:
                     logger.error(f"Invalid or expired token: {str(e)}")
                     return JsonResponse({"error": "Invalid or expired token"}, status=status.HTTP_401_UNAUTHORIZED)
