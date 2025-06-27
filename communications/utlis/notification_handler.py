@@ -12,7 +12,7 @@ def notification_set(type, message, user=None):
     user_id = user.user.id 
     print("user",user_id)
     async_to_sync( channel_layer.group_send)(
-        f"user_{user_id}",  
+        f"user-{user_id}",  
         {
             "type": "user.notification", 
             "data": {

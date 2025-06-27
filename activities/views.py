@@ -16,6 +16,8 @@ from communications.utlis.notification_handler import notification_set
 from rest_framework.decorators import api_view,permission_classes
 from Customer.models import Accounts,Contact
 from Customer.serializers import ContactViewSerializer
+from users.utlis.get_user import get_user
+from users.utlis.employee_hierarchy import get_employee_and_subordinates_ids
 
 
 
@@ -36,9 +38,7 @@ class TaskView(APIView):
 
         try:
             if userid:
-                employees = Employee.objects.filter(
-                    Q(id=userid) | Q(role__parent_role=Subquery(Employee.objects.filter(id=userid).values("role")[:1]))
-                ).values_list("id", flat=True)
+                employees = get_employee_and_subordinates_ids(userid)
 
                 task =Task.objects.filter(assigned_to_employee__id__in=employees) 
             else:
@@ -50,19 +50,15 @@ class TaskView(APIView):
     
     def post(self, request, *args, **kwargs):
         print(request.data)
-        try:
-            
-            user_id = request.data.get("assigned_to_employee")
-            
+        try:           
+            user_id = request.data.get("assigned_to_employee") 
             serializer = TaskSerializer(data=request.data)
             if serializer.is_valid():
                 if request.data.get("assignTo") !="team":
                     user = Employee.objects.get(id=user_id)
                     notification_set(type="Task", message="Task Created",user=user)
-                
-                serializer.save()
-                
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
+                task_data=serializer.save()
+                return Response(TaskViewSerializer(task_data, many=True).data, status=status.HTTP_201_CREATED)
             print(serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
@@ -138,8 +134,14 @@ class MeetingView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+        user_id = request.query_params.get("userId")
         try:
-            meetings = Meeting.objects.all()
+            if user_id:
+                employees_ids = get_employee_and_subordinates_ids(user_id)
+                print(employees_ids)
+                meetings = Meeting.objects.filter(host__in=employees_ids).order_by("-id")
+            else:
+                meetings = Meeting.objects.all().order_by("-id")
             serializer = MeetingViewSerializer(meetings, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
@@ -147,11 +149,17 @@ class MeetingView(APIView):
 
         
     def post(self, request, *args, **kwargs):
+        print(request.data)
         try:
             serializer = MeetingSerializer(data=request.data)
+            user_id = request.data.get("host")
             if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data,status=status.HTTP_200_OK)
+                
+                user= get_user(user_id)
+                notification_set(type="Meeting", message="Meeting Sheduled",user=user)
+                meeting_data = serializer.save()
+                return Response(MeetingViewSerializer(meeting_data).data,status=status.HTTP_200_OK)
+            print(serializer.errors)
             return Response({"message":serializer.errors},status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             print(str(e))
@@ -159,12 +167,18 @@ class MeetingView(APIView):
         
     def patch( self, request, *args, **kwargs):
         try:
+
             meeting_id = kwargs.get('meeting_id')
+            user_id = request.data.get("host")
+            print(request.data)
             meeting = Meeting.objects.get(id=meeting_id)
             serializer = MeetingSerializer(meeting, data=request.data, partial=True)
             if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data,status=status.HTTP_200_OK)
+                if user_id:
+                    user= get_user(user_id)
+                    notification_set(type="Meeting", message="Meeting Sheduled",user=user)
+                meeting_data = serializer.save()
+                return Response(MeetingViewSerializer(meeting_data).data,status=status.HTTP_200_OK)
             return Response({"message":serializer.errors},status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             print(str(e))

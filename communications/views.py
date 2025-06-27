@@ -17,15 +17,31 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 class ChatRoomViewSet(viewsets.ModelViewSet):
     serializer_class = ChatRoomSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
-     
-        return ChatRoom.objects.filter(is_group=True)
-    
+        queryset = ChatRoom.objects.all()
+        user_id = self.request.query_params.get("user")
+        group_chat = self.request.query_params.get("group_chat")
+        print("useridd",user_id)
+
+
+        if group_chat is not None:
+            # Convert "true"/"false" (strings) to boolean
+            is_group_chat = group_chat.lower() == "true"
+            print(is_group_chat)
+            queryset = queryset.filter(is_group=is_group_chat)
+
+
+        if user_id:
+            queryset = queryset.filter(participents__id=user_id)
+
+        return queryset
+
     def perform_create(self, serializer):
         room = serializer.save()
-        # # Add creator as a member
+        # Add creator as a member
         # ChatRoomMember.objects.create(room=room, user=self.request.user)
+
     
     @action(detail=True, methods=['post'])
     def add_member(self, request, pk=None):

@@ -21,7 +21,8 @@ from django.shortcuts import get_object_or_404
 from tenant.models import Tenant
 from rabc.models import Role
 import traceback
-
+from .utlis.employee_hierarchy import get_employee_and_subordinates_ids
+from admin_panel.tasks import log_user_activity_task
 redis_client = redis.StrictRedis(host='redis', port=6379, db=0,
                                  decode_responses=True)
 
@@ -68,6 +69,7 @@ class EmployeeManagment(APIView):
 
                 employee_login_credential.delay(serializer.data['email'],
                                                 tenant_name, subdomain)
+                log_user_activity_task.delay(request.tenant.name, 'Employee Created',)
 
                 return Response({"message": "Created Succesfully"},
                                 status=status.HTTP_201_CREATED)
@@ -107,6 +109,7 @@ class EmployeeManagment(APIView):
             employee = Employee.objects.get(id=user_id)
             employee.user.delete()
             employee.delete()
+            log_user_activity_task(request.tenant.name, 'Employee Deleted')
             return Response({"message": "Deleted Succesfully"},
                             status=status.HTTP_200_OK)
         except Exception as e:
@@ -129,11 +132,12 @@ class EmployeeLoginView(APIView):
             
             if not employee:
                 return Response({"error": "Invalid credentials."},  
-                                status=status.HTTP_401_UNAUTHORIZED)
+                                status=status.HTTP_404_NOT_FOUND)
             
-            if not employee.is_active and not tenant.is_active:
-                return Response({"error": "Your account has been disabled."},
+            if not employee.is_active or not tenant.is_active:
+                return Response({"error": "Your account or tenant has been disabled."},
                                 status=status.HTTP_403_FORBIDDEN)
+
             Employee.objects.get(user=employee)
             token_serializer = CustomEmployeeTokenObtainPairSerializer.get_token(employee)
             access_roken = token_serializer.access_token
@@ -334,23 +338,30 @@ class TeamManagmentView(APIView):
 
     def get(self, request, *args, **kwargs):
         team_id = request.query_params.get("team_id")
+        user_id = request.query_params.get("userId")
         print(team_id)
-        if team_id:
-            return self.get_team(request, team_id)
         try:
-            team = Team.objects.all()
-            serializer = TeamViewserilizer(team, many=True)
+            if team_id:
+                return self.get_team(request, team_id)
+
+            if user_id:
+                employee_ids = get_employee_and_subordinates_ids(user_id)
+                teams = Team.objects.filter(team_lead__in=employee_ids)
+            else:
+                teams = Team.objects.all()
+
+            serializer = TeamViewserilizer(teams, many=True)
             if serializer.data:
                 return Response({"teams": serializer.data})
             return Response({"error": "No team found"})
-        except Exception as e:
 
-            return Response({"error": str(e)}, 
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     def get_team(self, request, team_id):
         try:
             team = Team.objects.get(id=team_id)
+            tasks = team.team_tasks.all()
             serializer = TeamViewserilizer(team)
             print(serializer.data)
             return Response({"team": serializer.data})
@@ -435,10 +446,13 @@ class TeamMemberView(APIView):
 
     def get(self, request, *args, **kwargs):
         try:
-            team_id = kwargs.get('team_id')
+            team_id = request.query_params.get('team')
+
             team = Team.objects.get(id=team_id)
             team_members = team.team_members.all()
-            serializer = TeamMembersSerializer(data=team_members)
+            employees = [member.employee for member in team_members]
+            
+            serializer = UserListViewSerializer(employees, many=True)
             if serializer.data:
                 return Response({"team_member": serializer.data},
                                 status=status.HTTP_200_OK)
@@ -466,16 +480,19 @@ class TeamMemberView(APIView):
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def delete(self, request, *args, **kwargs):
+        member_id = request.data.get("member_id")
+
+        if not member_id:
+            return Response({"error": "member_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            team_id = request.data.get("team_id")
-            team = Team.objects.get(id=team_id)
-            team.delete()
-            return Response({"message": "Team deleted successfully"},
-                            status=status.HTTP_200_OK)
-        
-        except Team.DoesNotExist:
-            return Response({"error": "Team not found"},
-                            status=status.HTTP_404_NOT_FOUND)
+            team_member = TeamMembers.objects.get(employee__id=member_id)
+            team_member.delete()
+            return Response({"message": "Team member removed successfully"}, status=status.HTTP_200_OK)
+        except TeamMembers.DoesNotExist:
+            return Response({"error": "Team member not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
         
 
 

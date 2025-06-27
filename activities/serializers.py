@@ -55,6 +55,16 @@ class TaskSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         
         return super().validate(attrs)
+    
+    def create(self, validated_data):
+        is_team = validated_data.get('assigned_to_team')
+        if is_team:
+            validated_data['is_team']=True
+            validated_data['assigned_to_employee']=is_team.team_lead
+
+        
+        return super().create(validated_data)
+
 
 
 
@@ -205,6 +215,7 @@ class MeetingViewSerializer(serializers.ModelSerializer):
     host = UserListViewSerializer(read_only =True)
     created_by = UserListViewSerializer(read_only =True)
     contact = ContactViewSerializer(read_only =True)
+    
 
     class Meta:
         model = Meeting

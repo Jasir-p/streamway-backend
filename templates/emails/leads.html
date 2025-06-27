@@ -64,36 +64,37 @@
     <p>Hi {{ lead_name }},</p>
 
     <div class="highlight-box">
-      <p><strong>Great news!</strong> You’ve been successfully moved to the next stage in our process at <strong>{{ company_name }}</strong>.</p>
-      <p>We’re excited to connect and explore how we can bring the most value to you.</p>
+      <p><strong>Great news!</strong> You’ve officially moved to the next step with <strong>{{ tenant.name }}</strong>.</p>
+      <p>We’re thrilled to start working with you and helping you achieve your goals.</p>
     </div>
 
-    <p>Here’s what to expect next:</p>
+    <p>Here’s what you can expect next:</p>
     <ul>
-      <li>One of our team members will be in touch shortly</li>
-      <li>You’ll receive a calendar invite for an introductory call</li>
-      <li>We’ll walk you through our offering and answer your questions</li>
+      <li>One of our team members will connect with you shortly</li>
+      <li>You may receive a call or calendar invite for a quick onboarding discussion</li>
+      <li>We’ll walk through how we can support you moving forward</li>
     </ul>
 
-    <p>If you'd like to prepare ahead or explore more:</p>
+    <p>If you'd like to explore more about us in the meantime:</p>
     <div style="text-align: center;">
-      <a href="{{ company_website }}" class="button">Visit Our Website</a>
+      <a href="{{ tenant.website }}" class="button">Visit Our Website</a>
     </div>
 
-    <p>If you have any immediate questions or needs, feel free to reply to this email or contact us directly.</p>
+    <p>In the meantime, feel free to reply to this email or reach out directly if you have any questions.</p>
 
-    <p>Looking forward to speaking with you soon!</p>
+    <p>Looking forward to our journey together!</p>
 
     <p>Warm regards,<br>
-    {{ sender_name }}<br>
-    {{ sender_position }}<br>
-    {{ company_name }}</p>
+    {{ instance.sender.name }}<br>
+    {{ instance.sender.role.name }}<br>
+    {{ tenant.name }}<br>
+    {{ tenant.contact }}</p>
   </div>
 
   <div class="footer">
-    <p>© {{ current_year }} {{ company_name }}. All rights reserved.</p>
-    <p>{{ company_address }}</p>
-    <p><a href="{{ unsubscribe_link }}">Unsubscribe</a></p>
+    <p>© {{ current_year }} {{ tenant.name }}. All rights reserved.</p>
+    <p>{{ tenant.address }}</p>
+    <p><a href="{{ unsubscribe_link }}">Unsubscribe</a> | <a href="{{ privacy_policy }}">Privacy Policy</a></p>
   </div>
 </body>
 </html>

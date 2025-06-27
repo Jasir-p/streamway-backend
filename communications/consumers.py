@@ -291,11 +291,19 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             )
             logger.info(f"Removed consumer from group: {self.group_name}")
 
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        event_type = data.get("type")
+
+        if event_type == "mark_as_read":
+            notification_ids = data.get("notification_ids", [])
+            await self.mark_notifications_as_read(notification_ids)
+
     async def user_notification(self, event):
         logger.info(f"Received user_notification event: {event}")
         try:
             notifications = await self.get_user_notifications()
-            print(f"Notifications for user {self.user.id}: {notifications}")
+            # print(f"Notifications for user {self.user.id}: {notifications}")
             await self.send(text_data=json.dumps(notifications))
         except Exception as e:
             logger.error(f"Error in user_notification: {str(e)}")
@@ -324,11 +332,21 @@ class NotificationConsumer(AsyncWebsocketConsumer):
                 is_clear=False
             )
             serializer = NotificationSerializer(notifications, many=True)
-            print(f"Serialized notifications: {serializer.data}")
+            # print(f"Serialized notifications: {serializer.data}")
             return serializer.data
         except Exception as e:
             logger.error(f"Error fetching notifications: {str(e)}")
             raise
+    @database_sync_to_async
+    def mark_notifications_as_read(self, notification_ids):
+        user = self.scope.get("user")
+        if not user or not user.is_authenticated:
+            return
+        
+        Notifications.objects.filter(
+            id__in=notification_ids,
+            user__user__id=user.id  
+        ).update(is_read=True)
 
 
 
