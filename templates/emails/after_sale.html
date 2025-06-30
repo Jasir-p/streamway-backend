@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Thank You – Welcome Aboard!</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #ffffff;
+    }
+    .header {
+      background-color: #2e7d32;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 5px 5px 0 0;
+    }
+    .content {
+      background-color: #f9f9f9;
+      padding: 20px;
+      border-left: 1px solid #ddd;
+      border-right: 1px solid #ddd;
+    }
+    .footer {
+      background-color: #eeeeee;
+      padding: 15px;
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+      border-radius: 0 0 5px 5px;
+      border: 1px solid #ddd;
+    }
+    .button {
+      display: inline-block;
+      background-color: #2e7d32;
+      color: white;
+      padding: 12px 20px;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+    .highlight-box {
+      background-color: #e8f5e9;
+      border: 1px solid #c8e6c9;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    .social-links {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .social-links a {
+      margin: 0 10px;
+      text-decoration: none;
+      color: #2e7d32;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Thank You & Welcome to {{ tenant.name }}</h1>
+  </div>
+
+  <div class="content">
+    <p>Hello {{ data.name }},</p>
+
+    <div class="highlight-box">
+      <h2>We're excited to have you onboard!</h2>
+      <p>Thank you for choosing {{ tenant.name }}. This marks the beginning of a valuable partnership. We’re committed to helping you succeed with our services and support.</p>
+    </div>
+
+    <p>Our team is reviewing your details and will be reaching out to guide you through the next steps.</p>
+
+    <p>If you need any assistance, have questions, or would like to explore additional services, we’re here to help.</p>
+
+    <div style="text-align: center;">
+      <a href="{{ support_link }}" class="button">Contact Our Team</a>
+    </div>
+
+    <p>We’d also love to hear about your first impressions. Your feedback helps us serve you better:</p>
+
+    <div style="text-align: center;">
+      <a href="{{ review_link }}" class="button" style="background-color: #FFA000;">Share Feedback</a>
+    </div>
+
+    <div class="social-links">
+      <p>Stay connected with us:</p>
+      <a href="{{ facebook_link }}">Facebook</a> |
+      <a href="{{ twitter_link }}">Twitter</a> |
+      <a href="{{ instagram_link }}">Instagram</a>
+    </div>
+
+    <p>Thanks again for trusting us. We look forward to working with you!</p>
+
+    <p>Warm regards,<br/>
+    {{ instance.sender.name }}<br/>
+    Customer Success Team, {{ tenant.name }}</p>
+  </div>
+
+  <div class="footer">
+    <p>© {{ current_year }} {{ tenant.name }}. All rights reserved.</p>
+    {% comment %} <p>{{ tenant.address }}</p> {% endcomment %}
+    <p><a href="{{ unsubscribe_link }}">Unsubscribe</a> | <a href="{{ privacy_policy }}">Privacy Policy</a></p>
+  </div>
+</body>
+</html>

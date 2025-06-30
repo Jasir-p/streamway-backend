@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>We’re Excited to Work With You!</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #ffffff;
+    }
+    .header {
+      background-color: #43a047;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 5px 5px 0 0;
+    }
+    .content {
+      background-color: #f9f9f9;
+      padding: 20px;
+      border-left: 1px solid #ddd;
+      border-right: 1px solid #ddd;
+    }
+    .footer {
+      background-color: #eeeeee;
+      padding: 15px;
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+      border-radius: 0 0 5px 5px;
+      border: 1px solid #ddd;
+    }
+    .highlight-box {
+      background-color: #e8f5e9;
+      border: 1px solid #c8e6c9;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    .button {
+      display: inline-block;
+      background-color: #43a047;
+      color: white;
+      padding: 12px 20px;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Welcome Aboard, {{ lead_name }}!</h1>
+  </div>
+
+  <div class="content">
+    <p>Hi {{ lead_name }},</p>
+
+    <div class="highlight-box">
+      <p><strong>Great news!</strong> You’ve officially moved to the next step with <strong>{{ tenant.name }}</strong>.</p>
+      <p>We’re thrilled to start working with you and helping you achieve your goals.</p>
+    </div>
+
+    <p>Here’s what you can expect next:</p>
+    <ul>
+      <li>One of our team members will connect with you shortly</li>
+      <li>You may receive a call or calendar invite for a quick onboarding discussion</li>
+      <li>We’ll walk through how we can support you moving forward</li>
+    </ul>
+
+    <p>If you'd like to explore more about us in the meantime:</p>
+    <div style="text-align: center;">
+      <a href="{{ tenant.website }}" class="button">Visit Our Website</a>
+    </div>
+
+    <p>In the meantime, feel free to reply to this email or reach out directly if you have any questions.</p>
+
+    <p>Looking forward to our journey together!</p>
+
+    <p>Warm regards,<br>
+    {{ instance.sender.name }}<br>
+    {{ instance.sender.role.name }}<br>
+    {{ tenant.name }}<br>
+    {{ tenant.contact }}</p>
+  </div>
+
+  <div class="footer">
+    <p>© {{ current_year }} {{ tenant.name }}. All rights reserved.</p>
+    <p>{{ tenant.address }}</p>
+    <p><a href="{{ unsubscribe_link }}">Unsubscribe</a> | <a href="{{ privacy_policy }}">Privacy Policy</a></p>
+  </div>
+</body>
+</html>

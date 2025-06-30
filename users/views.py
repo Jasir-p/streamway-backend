@@ -21,8 +21,12 @@ from django.shortcuts import get_object_or_404
 from tenant.models import Tenant
 from rabc.models import Role
 import traceback
+from .utlis.employee_hierarchy import get_employee_and_subordinates_ids
+from admin_panel.tasks import log_user_activity_task
+from activities.serializers import TaskViewSerializer
 
-redis_client = redis.StrictRedis(host='localhost', port=6379, db=0,
+
+redis_client = redis.StrictRedis(host='redis', port=6379, db=0,
                                  decode_responses=True)
 
 tenant_model = get_tenant_model()
@@ -68,6 +72,7 @@ class EmployeeManagment(APIView):
 
                 employee_login_credential.delay(serializer.data['email'],
                                                 tenant_name, subdomain)
+                log_user_activity_task.delay(request.tenant.name, 'Employee Created',)
 
                 return Response({"message": "Created Succesfully"},
                                 status=status.HTTP_201_CREATED)
@@ -81,17 +86,22 @@ class EmployeeManagment(APIView):
         
     def put(self, request, *args, **kwargs):
         user_id = request.data.get("user_id")
+        user_data = request.data.get("user_data")
+        print(user_data)
+        
         try:
-            employee = Employee.objects.get(user_id=user_id)
-            serializer = EmployeeSerializer(employee, data=request.data)
+            employee = Employee.objects.get(id=user_id)
+            serializer = EmployeeSerializer(employee, data=user_data)
             if serializer.is_valid():
                 serializer.save()
                 return Response({"message": "Updated Succesfully"},
                                 status=status.HTTP_200_OK)
+            print(serializer.errors)
             return Response({"error": serializer.errors},
                             status=status.HTTP_400_BAD_REQUEST)
         
         except Exception as e:
+            print(str(e))
             return Response({"error": str(e)},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -102,6 +112,7 @@ class EmployeeManagment(APIView):
             employee = Employee.objects.get(id=user_id)
             employee.user.delete()
             employee.delete()
+            log_user_activity_task(request.tenant.name, 'Employee Deleted')
             return Response({"message": "Deleted Succesfully"},
                             status=status.HTTP_200_OK)
         except Exception as e:
@@ -116,16 +127,20 @@ class EmployeeLoginView(APIView):
         username = request.data.get("username")
         password = request.data.get("password")
         print(password, username)
+        tenant = request.tenant
+        print(tenant.is_active)
+        
         try:
             employee = authenticate(username=username, password=password)
             
             if not employee:
                 return Response({"error": "Invalid credentials."},  
-                                status=status.HTTP_401_UNAUTHORIZED)
+                                status=status.HTTP_404_NOT_FOUND)
             
-            if not employee.is_active:
-                return Response({"error": "Your account has been disabled."},
+            if not employee.is_active or not tenant.is_active:
+                return Response({"error": "Your account or tenant has been disabled."},
                                 status=status.HTTP_403_FORBIDDEN)
+
             Employee.objects.get(user=employee)
             token_serializer = CustomEmployeeTokenObtainPairSerializer.get_token(employee)
             access_roken = token_serializer.access_token
@@ -239,8 +254,7 @@ def password_change_verify(request):
         user.set_password(password)
         user.save()
         redis_client.delete(redis_key)
-
-        
+ 
         return Response({"message": "Password changed successfully"},
                         status=status.HTTP_200_OK)
     
@@ -262,7 +276,6 @@ def profile_update(request):
         "role": role
     }
 
-
     if not user_id:
         return Response({"error": "User ID is required"},
                         status=status.HTTP_400_BAD_REQUEST)
@@ -270,7 +283,7 @@ def profile_update(request):
         return Response({"error": "Profile Data is required"},
                         status=status.HTTP_400_BAD_REQUEST)
     try:
-        if role =="owner":
+        if role == "owner":
             with schema_context("public"):
                 tenant = get_object_or_404(Tenant, id=user_id)
                 tenant.owner_name = profile_data.get('name')
@@ -293,27 +306,23 @@ def profile_update(request):
 
             if serializer.is_valid():
                 serializer.save()
-                return Response({"message": "Profile updated successfully"}, status=status.HTTP_200_OK)
+                return Response(
+                    {
+                        "message": "Profile updated successfully"
+                    }, status=status.HTTP_200_OK
+                )
             else:
                 print(serializer.errors)  # Log the actual errors
-                return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"errors": serializer.errors
+                     }, status=status.HTTP_400_BAD_REQUEST
+                )
     
     except Exception as e:
         print("Exception Traceback:", traceback.format_exc())
-        return Response({"error": str(e)}, 
+        return Response({"error": str(e)},
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-            
-
-            
-
-    
-
-
-
-        
-
-       
 
 class MyTokenObtainPairView(TokenObtainPairView):
     
@@ -332,28 +341,39 @@ class TeamManagmentView(APIView):
 
     def get(self, request, *args, **kwargs):
         team_id = request.query_params.get("team_id")
+        user_id = request.query_params.get("userId")
         print(team_id)
-        if team_id:
-            return self.get_team(request, team_id)
         try:
-            team = Team.objects.all()
-            serializer = TeamViewserilizer(team, many=True)
+            if team_id:
+                return self.get_team(request, team_id)
+
+            if user_id:
+                employee_ids = get_employee_and_subordinates_ids(user_id)
+                teams = Team.objects.filter(team_lead__in=employee_ids)
+            else:
+                teams = Team.objects.all()
+
+            serializer = TeamViewserilizer(teams, many=True)
             if serializer.data:
                 return Response({"teams": serializer.data})
             return Response({"error": "No team found"})
-        except Exception as e:
 
-            return Response({"error": str(e)}, 
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     def get_team(self, request, team_id):
         try:
             team = Team.objects.get(id=team_id)
+            tasks = team.team_tasks.all()
             serializer = TeamViewserilizer(team)
-            print(serializer.data)
-            return Response({"team": serializer.data})
+            task_data = TaskViewSerializer(tasks,many=True)
+            result = serializer.data.copy()
+            result['tasks'] = task_data.data
+            return Response({"team": result})
         except Team.DoesNotExist:
-            return Response({"error": "Team not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "Team not found"}, status=status.HTTP_404_NOT_FOUND
+            )
        
     def post(self, request, *args, **kwargs):
         print(request.data["team_lead"])
@@ -361,7 +381,7 @@ class TeamManagmentView(APIView):
             serializer = TeamSerializer(data=request.data)
             if serializer.is_valid():
                 serializer.save()
-                return Response({"message": "Team created successfully"},
+                return Response({"message": "Team created successfully","team":serializer.data},
                                 status=status.HTTP_201_CREATED)
             return Response({"error": serializer.errors},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -369,16 +389,75 @@ class TeamManagmentView(APIView):
             return Response({"error": str(e)},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+    def put(self, request, *args, **kwargs):
+        print("data",request.data)
+        team_id = request.data.get("team_id")
+        print(type(team_id))
+        try:
+            
+            team = Team.objects.get(id=team_id)
+            serializer = TeamSerializer(team, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(
+                    {
+                        "message": "Successfully updated",
+                        'team': serializer.data
+                    }, status=status.HTTP_200_OK
+                )
+            print(serializer.errors)
+            return Response(
+                {
+                    "message": "Inavalid", "error": serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            print(e)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+    def patch(self, request, *args, **kwargs):
+        team_id = request.data.get("team_id")
+        try:
+            team = Team.objects.get(id=team_id)
+            serializer = TeamSerializer(team, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({"message": "Team updated successfully","team":serializer.data},
+                                status=status.HTTP_200_OK)
+            return Response({"error": serializer.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": str(e)},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def delete(self, request):
+        team_id = request.data.get("team_id")
+        try:
+            
+            print(team_id)
+            team = Team.objects.get(id=team_id)
+            team.delete()
+            return Response({"message": "Sucessfully Deleted"}, status=status.HTTP_200_OK)
+        except Team.DoesNotExist:
+            return Response({"message": "Team is not Found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
   
+
 class TeamMemberView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         try:
-            team_id = kwargs.get('team_id')
+            team_id = request.query_params.get('team')
+
             team = Team.objects.get(id=team_id)
             team_members = team.team_members.all()
-            serializer = TeamMembersSerializer(data=team_members)
+            employees = [member.employee for member in team_members]
+            
+            serializer = UserListViewSerializer(employees, many=True)
             if serializer.data:
                 return Response({"team_member": serializer.data},
                                 status=status.HTTP_200_OK)
@@ -406,54 +485,23 @@ class TeamMemberView(APIView):
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def delete(self, request, *args, **kwargs):
+        member_id = request.data.get("member_id")
+
+        if not member_id:
+            return Response({"error": "member_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            team_id = request.data.get("team_id")
-            team = Team.objects.get(id=team_id)
-            team.delete()
-            return Response({"message": "Team deleted successfully"},
-                            status=status.HTTP_200_OK)
-        
-        except Team.DoesNotExist:
-            return Response({"error": "Team not found"},
-                            status=status.HTTP_404_NOT_FOUND)
+            team_member = TeamMembers.objects.get(employee__id=member_id)
+            team_member.delete()
+            return Response({"message": "Team member removed successfully"}, status=status.HTTP_200_OK)
+        except TeamMembers.DoesNotExist:
+            return Response({"error": "Team member not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
         
 
 
 
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def change_team_lead(request):
-
-    try:
-        team_lead_id = request.data.get("lead_id")
-        team_id = request.data.get("team_id")
-        if not team_lead_id or not team_id:
-            return Response({"error": "Invalid request"}, status=status.HTTP_400_BAD_REQUEST)
-            
-        new_lead = Employee.objects.get(id=team_lead_id)
-        team = Team.objects.get(id=team_id)
-        if new_lead not in team.members.all():
-            return Response({"error": "The selected employee is not a member of this team"}, 
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        if team.team_lead == new_lead:
-            return Response({"message": "This user is already the team lead"}, 
-                            status=status.HTTP_200_OK)
-        
-        team.team_lead = new_lead
-        team.save()
-        return Response({"message": "Team lead updated successfully"}, 
-                        status=status.HTTP_200_OK)
-    except Employee.DoesNotExist:
-        return Response({"error": "Employee not found"},
-                        status=status.HTTP_404_NOT_FOUND)
-    except Team.DoesNotExist:
-        return Response({"error": "Team not found"},
-                        status=status.HTTP_404_NOT_FOUND)
-
-    except Exception as e:
-        return Response({"error": str(e)}, 
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
 

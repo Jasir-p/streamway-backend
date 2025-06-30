@@ -23,6 +23,7 @@ from rest_framework_simplejwt.views import (
 
 )
 
+
 from django.conf.urls.static import static
 urlpatterns = [
     
@@ -33,6 +34,13 @@ urlpatterns = [
     path('api/', include("leads.urls")),
     path('api/', include("Customer.urls")),
     path('api/', include("activities.urls")),
+    path('', include("billing.urls")),
+    path('',include("communications.urls")),
+    path('api/',include("admin_panel.urls")),
+    path('api/',include("tenant_panel.urls"))
+
+    
+    
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

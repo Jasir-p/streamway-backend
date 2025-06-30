@@ -11,12 +11,10 @@ def create_permission_for_tenant(sender, **kwargs):
     """This is for auto permission setting in each tenant schema
     after tenant creation."""
     
-    # Access the tenant object
     tenant = kwargs['tenant']
     schema_name = tenant.schema_name
     print(f"Signal received for schema: {schema_name}")
     
-    # Fetch all permissions from the public schema
     permissions = Permission.objects.all()
     
     # Create tenant permissions in the newly created tenant schema

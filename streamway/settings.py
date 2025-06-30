@@ -47,7 +47,12 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 # Application definition
 
 SHARED_APPS = [
+
+
     'django_tenants',
+    'channels',
+    'daphne',
+
     'corsheaders',
     'tenant',
     'django.contrib.admin',
@@ -57,10 +62,16 @@ SHARED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    
     'django_celery_results',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'Main_rbac',
+    'billing',
+    'admin_panel',
+   
+
+
     
     
 ]
@@ -69,11 +80,23 @@ TENANT_APPS = ['rabc',
                'users',
                'leads',
                'Customer',
-               'activities'
+               'activities',
+               'tenant_panel',
+
+               'communications.apps.CommunicationsConfig'
 
                ]
 INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
 
+ASGI_APPLICATION = 'streamway.asgi.application'
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("redis", 6379)],
+        },
+    },
+}
 
 REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
@@ -104,6 +127,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
 ]
 
 
@@ -135,7 +159,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'streamway.wsgi.application'
+
 
 
 # Database
@@ -173,10 +197,24 @@ EMAIL_HOST_PASSWORD = "prft tzuq vyii ftjq"  # App-specific password for Gmail
 # CELARY
 
 # or another broker like RabbitMQ
-CELERY_BROKER_URL = 'redis://localhost:6379/0'  
+CELERY_BROKER_URL = 'redis://redis:6379/0'  
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # or another result backend
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'  # or another result backend
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'check-tenant-billing-every-minute': {
+        'task': 'billing.tasks.check_all_tenants_billing',
+        'schedule': crontab(minute='*'),  # Run every minute
+    },
+    'check-task-duedate':
+    {
+        'task': 'activities.tasks.task_due_info',
+        'schedule': crontab(minute='*'),  
+    }
+}
+
 
 
 CACHES = {
@@ -258,3 +296,9 @@ TENANT_DOMAIN_MODEL = "tenant.Domain"
 PUBLIC_SCHEMA_NAME = 'public'
 SHOW_PUBLIC_IF_NO_TENANT_FOUND = True
 PUBLIC_SCHEMA_URLCONF = "tenant.urls"
+
+
+# Stripe Settings
+STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY")
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET")

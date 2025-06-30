@@ -82,7 +82,12 @@ class CustomEmployeeTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["email"] = emp.email
         token["permissions"] = list(RoleAcessPermission.objects.filter(role=emp.role).values_list("Permission__code_name", flat=True))
         tenant_name = connection.tenant.name
-        subdomain = connection.tenant.domain_url.split(".")[0]
+        domain_obj = connection.tenant.domains.first()
+        if domain_obj and domain_obj.domain:
+            subdomain = domain_obj.domain.split('.')[0]
+        else:
+            subdomain = "unknown"
+            print(subdomain)
 
         token["subdomain"] = subdomain
 
@@ -121,14 +126,11 @@ class CustomRefreshSerializer(TokenRefreshSerializer):
             
         return data
 
-    
-
-
-
 
 class TeamSerializer(serializers.ModelSerializer):
-    members = EmployeeSerializer(many=True, read_only=True)
     team_lead = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all())
+    members = EmployeeSerializer(many=True, read_only=True)
+
 
     class Meta:
         model = Team
@@ -142,18 +144,28 @@ class TeamSerializer(serializers.ModelSerializer):
                         }
         
     def validate_name(self, value):
-        if Team.objects.filter(name__iexact=value).exists():
+        team_id = self.instance.id if self.instance else None
+        if Team.objects.filter(name__iexact=value).exclude(id=team_id).exists():
             raise serializers.ValidationError("Team name already exists")
         return value
-        
+    def validate_team_lead(self, value):
+        team_id = self.instance.id if self.instance else None
+        if (
+            Team.objects.filter(team_lead=value).exclude(id=team_id).exists() or
+            Team.objects.filter(members=value).exclude(id=team_id).exists()
+        ):
+            raise serializers.ValidationError("Team lead already exists in another team")
+        return value
+
+    
     def create(self, validated_data):
         team = Team.objects.create(**validated_data)
         return team
-  
-        
+
+
 class TeamViewserilizer(serializers.ModelSerializer):
-    members = EmployeeSerializer(many=True, read_only=True)
-    team_lead = EmployeeSerializer(read_only=True)
+    members = UserListViewSerializer(many=True, read_only=True)
+    team_lead = UserListViewSerializer(read_only=True)
 
     class Meta:
         model = Team
@@ -171,7 +183,10 @@ class TeamMembersSerializer(serializers.ModelSerializer):
         if TeamMembers.objects.filter(employee=value).exists():
             raise serializers.ValidationError("Employee already exists in the team")
         return value
-        
+    
     def create(self, validated_data):
         return TeamMembers.objects.create(**validated_data)
+    
+
+
 

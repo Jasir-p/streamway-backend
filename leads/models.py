@@ -2,6 +2,9 @@ from django.db import models
 from users.models import Employee
 import random
 from django.db.models import SET_NULL
+from Customer.models import Accounts
+from decimal import Decimal
+
 
 class LeadFormField(models.Model):
     field_name = models.CharField(max_length=255)
@@ -27,6 +30,14 @@ class WebForm(models.Model):
         ("converted", "Converted"),
         ("lost", "Lost"),
     ]
+    SOURCE_CHOICES = [
+        ("website", "Website"),
+        ("whatsapp", "WhatsApp"),
+        ("facebook", "Facebook"),
+        ("instagram", "Instagram"),
+        ("referral", "Referral"),
+        ("other", "Other"),
+    ]
     name = models.CharField(max_length=255)
     email = models.EmailField(max_length=255)
     phone_number = models.CharField(max_length=255, null=True, blank=True)
@@ -35,6 +46,9 @@ class WebForm(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     status = models.CharField(
         max_length=255, choices=STATUS_CHOICES, default="new"
+    )
+    source = models.CharField(
+        max_length=50, choices=SOURCE_CHOICES, default="website"
     )
     custome_fields = models.JSONField(null=True, blank=True)
 
@@ -67,6 +81,14 @@ class Leads(models.Model):
         ("converted", "Converted"),
         ("lost", "Lost"),
     ]
+    SOURCE_CHOICES = [
+        ("website", "Website"),
+        ("whatsapp", "WhatsApp"),
+        ("facebook", "Facebook"),
+        ("instagram", "Instagram"),
+        ("referral", "Referral"),
+        ("other", "Other"),
+    ]
     name = models.CharField(max_length=255)
     
     email = models.EmailField(max_length=255)
@@ -80,6 +102,9 @@ class Leads(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     status = models.CharField(
         max_length=255, choices=STATUS_CHOICES, default="new"
+    )
+    source = models.CharField(
+        max_length=50, choices=SOURCE_CHOICES, default="website"
     )
     custome_fields = models.JSONField(null=True, blank=True)
 
@@ -98,6 +123,94 @@ class Leads(models.Model):
 
 
 
+class LeadNotes(models.Model):
+    notes = models.TextField(blank=True)
+    lead = models.ForeignKey(Leads,on_delete=models.CASCADE, null=True,blank=True)
+    created_by = models.ForeignKey(
+    
+       Employee, on_delete=models.SET_NULL, null=True, blank=True,
+       related_name='created_lead_notes'
+
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
+class Deal(models.Model):
+    deal_id = models.CharField(
+      max_length=8, unique=True, blank=True,
+      primary_key=True      
+    )
+    STATUS_CHOICES = [
+        ('new', 'New'),
+        ('in_progress', 'In Progress'),
+        ('won', 'Won'),
+        ('lost', 'Lost'),
+    ]
 
+    PRIORITY_CHOICES = [
+        ('high', 'High'),
+        ('medium', 'Medium'),
+        ('low', 'Low'),
+    ]
+
+    STAGE_CHOICES = [
+        ('qualification', 'Qualification'),
+        ('proposal', 'Proposal'),
+        ('negotiation', 'Negotiation'),
+        ('closed_lost', 'Closed Lost'),
+        ('closed_won', 'Closed Won'),
+        ('discovery', 'Discovery'),
+
+
+    ]
+
+    account_id = models.ForeignKey(Accounts, on_delete=models.CASCADE,default=None, related_name="deals")
+    title = models.CharField(max_length=255)
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00')  
+    )
+
+
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='new')
+    stage = models.CharField(max_length=100, choices=STAGE_CHOICES, blank=True, null=True, default='discovery')
+    expected_close_date = models.DateField()
+    owner = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True,related_name='deals_owned')
+    created_by = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True,related_name='deals_created')
+    priority = models.CharField(
+        max_length=20,
+        choices=PRIORITY_CHOICES,
+        default='medium', 
+        blank=True,
+        null=True
+    )
+    source = models.CharField(max_length=100, blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.title
+    
+    def generate_id(self):
+        while True:
+            unique_id = f"D{random.randint(100000, 999999)}"
+            if not Deal.objects.filter(deal_id=unique_id).exists():
+                return unique_id
+            
+    def save(self, *args, **kwargs):
+        if not self.deal_id:
+            self.deal_id = self.generate_id()
+        super(Deal, self).save(*args, **kwargs)
+
+class DealNotes(models.Model):
+    notes = models.TextField(blank=True)
+    deal = models.ForeignKey(Deal,on_delete=models.CASCADE, null=True,blank=True, related_name='notes')
+    created_by = models.ForeignKey(
+    
+       Employee, on_delete=models.SET_NULL, null=True, blank=True,
+       related_name='created_deal_notes'
+
+    )
+    created_at = models.DateTimeField(auto_now_add=True)

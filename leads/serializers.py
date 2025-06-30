@@ -1,9 +1,11 @@
 from rest_framework import serializers
-from .models import LeadFormField, Leads,WebForm
+from .models import LeadFormField, Leads,WebForm,LeadNotes,Deal,DealNotes
 from users.models import Employee
 from users.serializer import EmployeeSerializer,UserListViewSerializer
 from .tasks import create_lead_from_webform
 from tenant.utlis.get_tenant import get_schema_name
+from Customer.models import Accounts
+from Customer.serializers import AccountsViewSerializer
 
 
 
@@ -191,6 +193,7 @@ class WebformListViewSerializer(serializers.ModelSerializer):
             "employee",
             "granted_by",
             "lead_created",
+            'source',
         ]
     def get_employee(self, obj):
         if hasattr(obj, "employee") and obj.employee:
@@ -245,3 +248,68 @@ class LeadAssignSerializer(serializers.Serializer):
 
         return {"message": "Sucessfully updated"}
 
+class LeadNoteSerializer(serializers.ModelSerializer):
+    created_by = serializers.PrimaryKeyRelatedField(
+        queryset=Employee.objects.all(), required=False, allow_null=True
+    )
+    lead  = serializers.PrimaryKeyRelatedField(
+        queryset=Leads.objects.all(), required=False, allow_null=True
+    )
+    class Meta:
+        model = LeadNotes
+        fields = "__all__"
+
+class LeadNoteViewSerializer(serializers.ModelSerializer):
+    created_by = UserListViewSerializer(read_only=True)
+    lead = LeadsGetSerializer(read_only=True)
+    class Meta:
+        model = LeadNotes
+        fields = "__all__"
+class DealsSerializer(serializers.ModelSerializer):
+    created_by = serializers.PrimaryKeyRelatedField(
+        queryset=Employee.objects.all(), required=False, allow_null=True
+    )
+    owner = serializers.PrimaryKeyRelatedField(
+        queryset=Employee.objects.all(), required=False, allow_null=True
+    )
+    account_id = serializers.PrimaryKeyRelatedField(
+        queryset=Accounts.objects.all(), required=False, allow_null=True)
+    
+    class Meta:
+        model = Deal
+        fields = "__all__"
+
+
+    def validate(self, attrs):
+        return super().validate(attrs)
+        
+
+class DealsViewserializer(serializers.ModelSerializer):
+    created_by = UserListViewSerializer(read_only=True)
+    owner = UserListViewSerializer(read_only=True)
+    account_id = AccountsViewSerializer(read_only=True)
+
+    class Meta:
+        model = Deal
+        fields = "__all__"
+
+    
+class DealNotesSerializer(serializers.ModelSerializer):
+    created_by = serializers.PrimaryKeyRelatedField(
+        queryset=Employee.objects.all(), required=False, allow_null=True
+    )
+    deal  = serializers.PrimaryKeyRelatedField(
+        queryset=Deal.objects.all(), required=False, allow_null=True
+    )
+
+    class Meta:
+        model = DealNotes
+        fields = "__all__"
+
+class DealNotesViewSerializer(serializers.ModelSerializer):
+    created_by = UserListViewSerializer(read_only=True)
+    deal = DealsViewserializer(read_only=True)
+
+    class Meta:
+        model = DealNotes
+        fields = "__all__"
