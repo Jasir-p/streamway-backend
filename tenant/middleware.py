@@ -23,7 +23,8 @@ class CustomTenantMiddleware:
         return self._handle_sync_request(request)
 
     def _handle_sync_request(self, request):
-        host = request.get_host().split(":")[0]
+        host = request.get_host().split(".")[0]
+        print(host)
 
         if request.path.startswith(("/admin/", "/static/", "/media/")):
             connection.set_schema_to_public()
@@ -128,7 +129,7 @@ class WebSocketTenantMiddleware:
             return await self.app(scope, receive, send)
 
         headers = dict(scope.get("headers", []))
-        host_header = headers.get(b"host", b"").decode("utf-8").split(":")[0]
+        host_header = headers.get(b"host", b"").decode("utf-8").split(".")[0]
         logger.info(f"WebSocket host: {host_header}")
 
         # --- Tenant Resolution ---

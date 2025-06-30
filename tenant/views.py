@@ -243,7 +243,7 @@ class RegisterTenant(APIView):
                 log_user_activity_task(tenant.name,"Tenant created")
                 
                 # Create a domain for the tenant
-                domain_name = f"{tenant.schema_name}.localhost"
+                domain_name = f"{tenant.schema_name}"
                 Domain.objects.create(
                     domain=domain_name,
                     tenant=tenant,
@@ -326,7 +326,7 @@ class CheckAuthView(APIView):
 
     def get(self, request):
 
-        host = request.get_host().split(":")[0]
+        host = request.get_host().split(".")[0]
         subdomain = host.split(".")[0] if "." in host else None
 
         try:

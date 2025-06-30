@@ -186,14 +186,16 @@ EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
 # Default email configuration
 
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
-EMAIL_HOST = config('EMAIL_HOST') # Correct Gmail SMTP server
-EMAIL_PORT = config('EMAIL_PORT')  # Correct port for TLS
-EMAIL_USE_TLS = config('EMAIL_USE_TLS')  # Enable TLS
+DEFAULT_FROM_EMAIL = "no-reply@streamway.com"
+EMAIL_HOST = "smtp.gmail.com"  # Correct Gmail SMTP server
+EMAIL_PORT = 587  # Correct port for TLS
+EMAIL_USE_TLS = True  # Enable TLS
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')  # Your Gmail address
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')  # App-specific password for Gmail
 
 
+# EMAIL_HOST_USER = "stream8196@gmail.com"  # Your Gmail address
+# EMAIL_HOST_PASSWORD = "prft tzuq vyii ftjq"  # App-specific password for Gmail
 # CELARY
 
 # or another broker like RabbitMQ
