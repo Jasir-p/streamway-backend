@@ -18,6 +18,7 @@ from Customer.models import Accounts,Contact
 from Customer.serializers import ContactViewSerializer
 from users.utlis.get_user import get_user
 from users.utlis.employee_hierarchy import get_employee_and_subordinates_ids
+from tenant.pagination import StandardResultsSetPagination
 
 
 
@@ -43,8 +44,10 @@ class TaskView(APIView):
                 task =Task.objects.filter(assigned_to_employee__id__in=employees) 
             else:
                 task = Task.objects.all()
-            serializer = TaskViewSerializer(task, many=True, context={'request': request})
-            return Response(serializer.data)
+            paginator = StandardResultsSetPagination()
+            result_page = paginator.paginate_queryset(task, request)
+            serializer = TaskViewSerializer(result_page, many=True)
+            return paginator.get_paginated_response(serializer.data)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
@@ -58,7 +61,7 @@ class TaskView(APIView):
                     user = Employee.objects.get(id=user_id)
                     notification_set(type="Task", message="Task Created",user=user)
                 task_data=serializer.save()
-                return Response(TaskViewSerializer(task_data, many=True).data, status=status.HTTP_201_CREATED)
+                return Response(TaskViewSerializer(task_data).data, status=status.HTTP_201_CREATED)
             print(serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
@@ -67,15 +70,18 @@ class TaskView(APIView):
         
     
         
-    def put(self, request, *args, **kwargs):
+    def patch(self, request, *args, **kwargs):
         try:
-            task_id = request.data .get('id')
+            task_id = request.query_params.get("task_id")
             task = Task.objects.get(id=task_id)
-            serializer = TaskSerializer(task,data=request.data)
+            serializer = TaskSerializer(task,data=request.data,partial=True)
             if serializer.is_valid():
-                serializer.save()
-                return Response({serializer.data}, status=status.HTTP_200_OK)
+                task_data=serializer.save()
+                return Response(TaskViewSerializer(task_data).data, status=status.HTTP_200_OK)
+
             return Response({"message":serializer.errors},status=status.HTTP_400_BAD_REQUEST)
+        except Task.DoesNotExist:
+            return Response({"message": "Task not found."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"message":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -105,11 +111,19 @@ class TaskDetailView(RetrieveUpdateDestroyAPIView):
 class EmailsView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request, *args, **kwargs):
+        user_id = request.query_params.get("userId")
         try:
-            emails = Email.objects.all()
-            serializer = EmailsViewSerializer(emails, many=True)
+            if user_id:
+                employees_id =get_employee_and_subordinates_ids(user_id)
+                emails = Email.objects.filter(sender__id__in=employees_id).order_by("-sent_at")
+            else:
+                emails = Email.objects.all().order_by("-sent_at")
+
+            paginator = StandardResultsSetPagination()
+            result_page =paginator.paginate_queryset(emails, request) 
+            serializer = EmailsViewSerializer(result_page, many=True)
             if serializer.data:
-                return Response(serializer.data, status=status.HTTP_200_OK)
+                return Response(paginator.get_paginated_response(serializer.data), status=status.HTTP_200_OK)
             return Response({"message":"No data found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"message":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -23,6 +23,9 @@ from rabc.models import Role
 import traceback
 from .utlis.employee_hierarchy import get_employee_and_subordinates_ids
 from admin_panel.tasks import log_user_activity_task
+from activities.serializers import TaskViewSerializer
+
+
 redis_client = redis.StrictRedis(host='redis', port=6379, db=0,
                                  decode_responses=True)
 
@@ -363,8 +366,10 @@ class TeamManagmentView(APIView):
             team = Team.objects.get(id=team_id)
             tasks = team.team_tasks.all()
             serializer = TeamViewserilizer(team)
-            print(serializer.data)
-            return Response({"team": serializer.data})
+            task_data = TaskViewSerializer(tasks,many=True)
+            result = serializer.data.copy()
+            result['tasks'] = task_data.data
+            return Response({"team": result})
         except Team.DoesNotExist:
             return Response(
                 {"error": "Team not found"}, status=status.HTTP_404_NOT_FOUND

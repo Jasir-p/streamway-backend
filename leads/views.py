@@ -2,7 +2,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import LeadFormField, Leads,WebForm,LeadNotes,Deal,DealNotes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,AllowAny
 from leads.serializers import( LeadFormSerializers, 
                               LeadSerializers,WebformSerializer, 
                               LeadsGetSerializer, 
@@ -28,11 +28,16 @@ from activities.serializers import TaskViewSerializer
 from users.utlis.employee_hierarchy import get_employee_and_subordinates_ids
 from .services import get_deal_status_summary,get_lead_status_summary
 from django.utils import timezone
+from tenant_panel.utils.filters import  parse_filter_params
+from tenant_panel.utils.applay_date_filter import apply_date_filter
 
 
 
 class FormfieldView(APIView):
-    permission_classes = [IsAuthenticated]
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
     def get(self, request):
         formfields = LeadFormField.objects.all()
@@ -80,11 +85,18 @@ class FormfieldView(APIView):
         except LeadFormField.DoesNotExist:
             return Response({'message': 'Field does not exist'},
                             status=status.HTTP_404_NOT_FOUND)
-        
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_form_fields(request):
+    formfields = LeadFormField.objects.all()
+    serializer = LeadFormSerializers(formfields, many=True)
+    return Response({'formfields': serializer.data})
+
         
 class LeadsView(APIView):
+    
     permission_classes = [IsAuthenticated]
-
     def get(self, request):
         userid = request.query_params.get("userId")
         
@@ -228,7 +240,10 @@ def get_employee(request):
 
     
 class WebEnquiry(APIView):
-    permission_classes = [IsAuthenticated]
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
     def get(self, request, *args, **kwargs):
         try:
@@ -443,6 +458,18 @@ class DealView(APIView):
                     {'error': str(e)},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
+    def delete(self, request, *args, **kwargs):
+        try:
+            deal_ids = request.data.get('deal_ids', [])
+            deals = Deal.objects.filter(deal_id__in=deal_ids)
+            if not deals.exists():
+                return Response({'error': 'No valid deals found for provided IDs'}, 
+                                status=status.HTTP_404_NOT_FOUND)
+            deals.delete()
+            return Response({'message': 'Deals deleted successfully'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
             
         
@@ -483,21 +510,31 @@ class DealNoteView (APIView):
 @permission_classes([IsAuthenticated])
 def sales_pipeline(request, *args, **kwargs):
     user_id = request.query_params.get("userId")
+    filter_items = request.query_params.get("filter")
     try:
+        filter_info = parse_filter_params(filter_items)
+        filter_type = filter_info['filter_type']
+        start_date = filter_info['start_date']
+        end_date = filter_info['end_date']
+        print(filter_info)
         if user_id:
             employee_ids = get_employee_and_subordinates_ids(user_id)
             leads = Leads.objects.filter(employee__in=employee_ids).order_by("-created_at")
+
             deals = Deal.objects.filter(owner__in=employee_ids).order_by("-created_at")
 
-            lead_status_summary = get_lead_status_summary(employee_ids)
-            deal_status_summary = get_deal_status_summary(employee_ids)
+
+            lead_status_summary = get_lead_status_summary(filter_type, start_date, end_date,employee_ids)
+            deal_status_summary = get_deal_status_summary(filter_type, start_date, end_date,employee_ids)
         else:
             leads = Leads.objects.all().order_by("-created_at")
             deals = Deal.objects.all().order_by("-created_at")
 
-            lead_status_summary = get_lead_status_summary()
-            deal_status_summary = get_deal_status_summary()
 
+            lead_status_summary = get_lead_status_summary(filter_type, start_date, end_date)
+            deal_status_summary = get_deal_status_summary(filter_type, start_date, end_date)
+        
+        
         latest_leads = LeadsGetSerializer(leads[:5], many=True).data
         latest_deals = DealsViewserializer(deals[:5], many=True).data
 
@@ -511,6 +548,7 @@ def sales_pipeline(request, *args, **kwargs):
         return Response(data, status=status.HTTP_200_OK)
 
     except Exception as e:
+        print(str(e))
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

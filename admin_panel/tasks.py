@@ -26,4 +26,8 @@ def log_user_activity_task(user_id, action, max_logs=50):
 
     logs = logs[:max_logs]
 
-    redis_client.setex(key, ttl_seconds, json.dumps(logs))
+    if not redis_client.exists(key):
+        redis_client.set(key, json.dumps(logs))
+        redis_client.expire(key, ttl_seconds)
+    else:
+        redis_client.set(key, json.dumps(logs))
