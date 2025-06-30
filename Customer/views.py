@@ -156,10 +156,8 @@ def account_overview(request):
     notes = Notes.objects.filter(account__id=account_id)
     serializer = AccountsViewSerializer(account)
     serializer_note = AccountNoteViewSerializer(notes, many=True)
-    print(serializer_note.data)
     task_count = account.tasks.all()
     task_data = TaskViewSerializer(task_count, many=True)
-    print(task_count)
     contacts = account.contacts.all()
     deals= account.deals.all()
     

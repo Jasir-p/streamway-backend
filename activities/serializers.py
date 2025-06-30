@@ -131,19 +131,19 @@ class EmailSerializer(serializers.ModelSerializer):
         print(to_leads)
         for lead_id in to_leads:
             lead = Leads.objects.get(lead_id=lead_id)
-            email = Email.objects.create(**validated_data, to_lead=lead)
+            email = Email.objects.create(**validated_data, to_lead=lead,recipient_name=lead.name,recipient_email=lead.email)
             created_emails.append(email)
 
 
         for contact_id in to_contacts:
             contact = Contact.objects.get(id=contact_id)
-            email = Email.objects.create(**validated_data, to_contacts=contact)
+            email = Email.objects.create(**validated_data, to_contacts=contact,recipient_name=contact.name,recipient_email=contact.email)
             created_emails.append(email)
 
 
         for account_id in to_accounts:
             account = Accounts.objects.get(id=account_id)
-            email = Email.objects.create(**validated_data, to_account=account)
+            email = Email.objects.create(**validated_data, to_account=account,recipient_name=account.name,recipient_email=account.email)
             created_emails.append(email)
 
         tenant_mail_to.delay([email.id for email in created_emails],schema)
@@ -161,7 +161,7 @@ class EmailsViewSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'sender', 'category', 'is_sent', 'to_lead', 'to_contacts',
             'to_account', 'subject', 'body', 'created_at', 'updated_at', 
-            'sent_at', 'recipient'
+            'sent_at', 'recipient','recipient_name','recipient_email'
         ]
 
     def get_recipient(self, obj):

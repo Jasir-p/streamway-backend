@@ -8,80 +8,52 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
-
-from django_tenants.utils import get_tenant_model, get_tenant_domain_model
-from asgiref.sync import sync_to_async
-from django.db import connection
-from django.http import JsonResponse
-from rest_framework_simplejwt.tokens import AccessToken
-from rest_framework import status
-import logging
-
-logger = logging.getLogger(__name__)
-
-# Get model references
 TenantModel = get_tenant_model()
 DomainModel = get_tenant_domain_model()
 
 class CustomTenantMiddleware:
-    """Tenant detection middleware that handles both HTTP and WebSocket connections"""
+    """Tenant detection middleware for HTTP requests"""
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        """Main entry point for middleware processing"""
-
-        if hasattr(request, 'scope') and request.scope.get('type') == 'websocket':
-            return self._handle_websocket(request)
         if hasattr(request, 'is_async') and request.is_async:
             return self._handle_async_request(request)
         return self._handle_sync_request(request)
 
     def _handle_sync_request(self, request):
-
         host = request.get_host().split(":")[0]
 
-
-        if request.path.startswith("/admin/") or request.path.startswith("/static/") or request.path.startswith("/media/"):
+        if request.path.startswith(("/admin/", "/static/", "/media/")):
             connection.set_schema_to_public()
             return self.get_response(request)
 
         try:
- 
             if request.path in ["/api/token/refresh/", "/api/token/employee_refresh/"]:
-                logger.info(f"Allowing token refresh request to pass through: {request.path}")
                 return self.get_response(request)
 
             domain = DomainModel.objects.get(domain=host)
             tenant = TenantModel.objects.get(id=domain.tenant.id)
-
-            # Set the tenant context
             connection.set_tenant(tenant)
             request.tenant = tenant
-            logger.info(f"Setting tenant for HTTP request: {tenant}")
 
-            # Process JWT token if present
             auth_header = request.headers.get("Authorization")
             if auth_header and auth_header.startswith("Bearer "):
-                token = auth_header.split(" ")[1]
-                logger.debug(f"Processing token for authentication")
-
                 try:
+                    token = auth_header.split(" ")[1]
                     decoded_token = AccessToken(token)
                     request.user_id = decoded_token["user_id"]
-                    request.role = decoded_token.get("role", None)
+                    request.role = decoded_token.get("role")
                     request.permissions = decoded_token.get("permissions", [])
-                    request.subdomain = decoded_token.get("subdomain", None)
+                    request.subdomain = decoded_token.get("subdomain")
                 except Exception as e:
-                    logger.error(f"Invalid or expired token: {str(e)}")
+                    logger.error(f"Token error: {str(e)}")
                     return JsonResponse({"error": "Invalid or expired token"}, status=status.HTTP_401_UNAUTHORIZED)
 
             return self.get_response(request)
 
         except DomainModel.DoesNotExist:
-            # Use public schema if domain not found
             connection.set_schema_to_public()
             request.tenant = None
             return self.get_response(request)
@@ -90,104 +62,44 @@ class CustomTenantMiddleware:
             return JsonResponse({"error": "Tenant not found"}, status=404)
 
     async def _handle_async_request(self, request):
-        """Handle asynchronous HTTP requests"""
         host = request.get_host().split(":")[0]
 
-   
-        if request.path.startswith("/admin/") or request.path.startswith("/static/") or request.path.startswith("/media/"):
+        if request.path.startswith(("/admin/", "/static/", "/media/")):
             connection.set_schema_to_public()
             return await self.get_response(request)
 
         try:
-
             if request.path in ["/api/token/refresh/", "/api/token/employee_refresh/"]:
-                logger.info(f"Allowing token refresh request to pass through: {request.path}")
                 return await self.get_response(request)
 
             domain = await sync_to_async(DomainModel.objects.get)(domain=host)
             tenant = await sync_to_async(TenantModel.objects.get)(id=domain.tenant.id)
-
-            # Set the tenant context
             connection.set_tenant(tenant)
             request.tenant = tenant
-            request.scope["tenant"] = tenant  # Set tenant in scope for ASGI compatibility
-            logger.info(f"Setting tenant for async HTTP request: {tenant}")
-
+            request.scope["tenant"] = tenant
 
             auth_header = request.headers.get("Authorization")
             if auth_header and auth_header.startswith("Bearer "):
-                token = auth_header.split(" ")[1]
-                logger.debug(f"Processing token for authentication")
-
                 try:
+                    token = auth_header.split(" ")[1]
                     decoded_token = AccessToken(token)
                     request.user_id = decoded_token["user_id"]
-                    request.role = decoded_token.get("role", None)
+                    request.role = decoded_token.get("role")
                     request.permissions = decoded_token.get("permissions", [])
-                    request.subdomain = decoded_token.get("subdomain", None)
-                    
-                    if request.subdomain is None and request.role != "admin":
-                        return JsonResponse({"error": "Subdomain required"}, status=400)
+                    request.subdomain = decoded_token.get("subdomain")
                 except Exception as e:
-                    logger.error(f"Invalid or expired token: {str(e)}")
+                    logger.error(f"Token error: {str(e)}")
                     return JsonResponse({"error": "Invalid or expired token"}, status=status.HTTP_401_UNAUTHORIZED)
 
             return await self.get_response(request)
 
         except DomainModel.DoesNotExist:
-
             connection.set_schema_to_public()
             request.tenant = None
             return await self.get_response(request)
 
         except TenantModel.DoesNotExist:
             return JsonResponse({"error": "Tenant not found"}, status=404)
-
-    def _handle_websocket(self, request):
-        """Handle WebSocket connections"""
-        logger.info("Handling WebSocket connection")
-        
-        # Extract host from scope
-        headers = dict(request.scope.get('headers', []))
-        host_header = headers.get(b'host', b'').decode('utf-8').split(':')[0]
-        
-        try:
-            # Try to get tenant from host
-            if host_header:
-                try:
-                    domain = DomainModel.objects.get(domain=host_header)
-                    tenant = TenantModel.objects.get(id=domain.tenant.id)
-                    
-
-                    connection.set_tenant(tenant)
-                    request.scope['tenant'] = tenant
-                    logger.info(f"Setting tenant for WebSocket: {tenant}")
-                except (DomainModel.DoesNotExist, TenantModel.DoesNotExist):
-
-                    connection.set_schema_to_public()
-                    request.scope['tenant'] = None
-                    logger.warning(f"Domain not found for WebSocket connection: {host_header}")
-            else:
-
-                connection.set_schema_to_public()
-                request.scope['tenant'] = None
-                logger.warning("No host header found for WebSocket connection")
-
-            if 'query_string' in request.scope:
-
-                pass
-                
-
-            return self.get_response(request)
-            
-        except Exception as e:
-            logger.error(f"Error in WebSocket tenant middleware: {str(e)}")
-
-            connection.set_schema_to_public()
-            request.scope['tenant'] = None
-            return self.get_response(request)
-
-
 
 
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model

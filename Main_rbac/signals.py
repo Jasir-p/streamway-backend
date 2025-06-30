@@ -5,12 +5,13 @@ from .utlis.permission_genarator import permisson_genarator
 
 
 Predfind_Modules = ['Leads', 'Contacts', 'Meetings', 'Customer', 'Task', 
-                    'Calls', 'Emails', 'Team']
+                    'Calls', 'Emails', 'Team', 'Deals', 'Enquiry']
 
 
 @receiver(post_migrate)
 def create_permission(sender,  **kwargs):
     if sender.name == 'Main_rbac':
+        print("📌 Post migrate signal triggered for Main_rbac")
         for module in Predfind_Modules:
             for perm in permisson_genarator(module):
                 Permission.objects.get_or_create(

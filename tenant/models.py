@@ -83,29 +83,6 @@ class TenantBilling(models.Model):
                 description=f"Customer for tenant: {self.tenant.name}"
             )
             self.stripe_customer_id = customer.id
-            
-        # Calculate next billing date if not set
-        if not self.next_billing_date:
-
-            # if self.tenant.created_on < timezone.now().date() - timedelta(days=30):
-            #     self.next_billing_date = timezone.now()
-            # else:
-            #     # Set next billing date to 30 days after tenant creation
-            #     creation_date = datetime.combine(self.tenant.created_on, datetime.min.time())
-            #     aware_creation_date = timezone.make_aware(creation_date, timezone.get_current_timezone())
-            #     print(creation_date)
-            #     self.next_billing_date = aware_creation_date + timedelta(days=30)
-
-            # if self.tenant.created_on < timezone.now().date() - timedelta(days=1):
-            #     self.next_billing_date = timezone.now()
-            # else:
-            #     # Set next billing date to 30 days after tenant creation
-            #     creation_date = datetime.combine(self.tenant.created_on, datetime.min.time())
-            #     aware_creation_date = timezone.make_aware(creation_date, timezone.get_current_timezone())
-            #     print(creation_date)
-            #     self.next_billing_date = aware_creation_date + timedelta(minutes=10)
-
-
 
             if self.tenant.created_on < timezone.now().date() - timedelta(days=1):
                 self.next_billing_date = timezone.now()

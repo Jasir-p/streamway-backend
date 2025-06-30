@@ -74,6 +74,8 @@ class Email(models.Model):
     to_lead = models.ForeignKey(Leads, on_delete=models.SET_NULL, related_name='emails', null=True, blank=True)
     to_contacts = models.ForeignKey(Contact, on_delete=models.SET_NULL, related_name='emails', null=True, blank=True)
     to_account = models.ForeignKey(Accounts, on_delete=models.SET_NULL, related_name='emails', null=True, blank=True)
+    recipient_name = models.CharField(max_length=255, null=True, blank=True)
+    recipient_email = models.EmailField(null=True, blank=True)
     subject = models.CharField(max_length=200,null=True,blank=True)
     body = models.TextField(null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
