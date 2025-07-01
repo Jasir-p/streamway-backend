@@ -31,6 +31,10 @@ from django.utils import timezone
 from tenant_panel.utils.filters import  parse_filter_params
 from tenant_panel.utils.applay_date_filter import apply_date_filter
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 
 class FormfieldView(APIView):
@@ -107,7 +111,7 @@ class LeadsView(APIView):
 
             else:
                 leads = Leads.objects.all().order_by("-created_at")
-
+            print(leads)
             paginator = StandardResultsSetPagination()
             result_page = paginator.paginate_queryset(leads, request)
             serializer = LeadsGetSerializer(result_page, many=True)
@@ -132,11 +136,13 @@ class LeadsView(APIView):
                     status=status.HTTP_201_CREATED
                 )
             else:
+                logger.error(f"adding error for lead section: {str(serializer.errors)}")
                 return Response(
                     serializer.errors,
                     status=status.HTTP_400_BAD_REQUEST
                 )
         else:
+            
             return Response(
                 {'message': 'No data provided'},
                 status=status.HTTP_400_BAD_REQUEST

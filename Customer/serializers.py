@@ -29,6 +29,10 @@ class ContactSerializer(serializers.ModelSerializer):
     def validate_phone_number(self, value):
         if not value.isdigit():
             raise serializers.ValidationError("Phone number must be a digit")
+        contact_id = self.instance.id if self.instance else None
+        if Contact.objects.filter(phone_number=value).exclude(id=contact_id).exists():
+            raise serializers.ValidationError("Phone number already exists")
+        
         return value
 
     def create(self, validated_data):

@@ -29,18 +29,14 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG')
 
-ALLOWED_HOSTS = ['*']
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1,.localhost").split(",")
+CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="").split(",")
+CORS_ALLOWED_ORIGIN_REGEXES = [config("CORS_ALLOWED_ORIGIN_REGEXES")]
+
 CORS_ALLOW_ALL_ORIGINS = True  # Temporary (not recommended for production)
 
 CORS_ALLOW_CREDENTIALS = True  
 
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^http://[a-zA-Z0-9.-]+\.localhost:5173$",  # Allow all subdomains of localhost
-]
 
 
 
@@ -140,7 +136,9 @@ ROOT_URLCONF = 'streamway.urls'
 # SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to the cookie
 # SESSION_COOKIE_SECURE = False  # Set to True in production (with HTTPS)
 
-BASE_URL = 'localhost'
+
+BASE_URL = config("BASE_URL", default="http://localhost:8000")
+
 
 
 TEMPLATES = [
@@ -194,8 +192,6 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER')  # Your Gmail address
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')  # App-specific password for Gmail
 
 
-# EMAIL_HOST_USER = "stream8196@gmail.com"  # Your Gmail address
-# EMAIL_HOST_PASSWORD = "prft tzuq vyii ftjq"  # App-specific password for Gmail
 # CELARY
 
 # or another broker like RabbitMQ
