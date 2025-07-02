@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 TenantModel = get_tenant_model()
 DomainModel = get_tenant_domain_model()
-
+PUBLIC_DOMAINS = ["streamway", "api"]
 class CustomTenantMiddleware:
     """Tenant detection middleware for HTTP requests"""
 
@@ -25,7 +25,10 @@ class CustomTenantMiddleware:
     def _handle_sync_request(self, request):
         host = request.get_host().split(".")[0]
         print(host)
-
+        if host in PUBLIC_DOMAINS or request.get_host() in ["streamway.solutions", "api.streamway.solutions"]:
+            connection.set_schema_to_public()
+            request.tenant = None
+            return self.get_response(request)
         if request.path.startswith(("/admin/", "/static/", "/media/")):
             connection.set_schema_to_public()
             return self.get_response(request)
