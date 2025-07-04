@@ -111,6 +111,21 @@ services:
     networks:
       - streamway-network
 
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./staticfiles:/app/staticfiles
+      - /etc/letsencrypt:/etc/letsencrypt
+    depends_on:
+      - web
+    networks:
+      - streamway-network
+
 volumes:
   postgres_data:
   redis_data:
