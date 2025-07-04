@@ -131,10 +131,15 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'streamway.urls'
 
 # SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"  # Store session in cookies
-# SESSION_COOKIE_DOMAIN = ".localhost"  # Allow cookies to be shared across subdomains
-# CSRF_COOKIE_DOMAIN = ".localhost"
-# SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to the cookie
-# SESSION_COOKIE_SECURE = False  # Set to True in production (with HTTPS)
+CSRF_COOKIE_DOMAIN = ".localhost"            # or ".yourdomain.com" in prod
+CSRF_COOKIE_SECURE = False                   # True in production
+CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://localhost:5173",
+    "http://*.localhost:5173",
+]
 
 
 BASE_URL = config("BASE_URL", default="http://localhost:8000")
@@ -178,7 +183,7 @@ DATABASES = {
 DATABASE_ROUTERS = (
     'django_tenants.routers.TenantSyncRouter',
 )
-
+TENANT_SUBFOLDER_PREFIX = True
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
@@ -300,3 +305,5 @@ PUBLIC_SCHEMA_URLCONF = "tenant.urls"
 STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY")
 STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET")
+
+# APPEND_SLASH = False

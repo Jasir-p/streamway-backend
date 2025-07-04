@@ -111,19 +111,22 @@ class TaskDetailView(RetrieveUpdateDestroyAPIView):
 class EmailsView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request, *args, **kwargs):
-        user_id = request.query_params.get("userId")
+        user_id = request.query_params.get("user_id")
+        print(user_id)
         try:
             if user_id:
                 employees_id =get_employee_and_subordinates_ids(user_id)
                 emails = Email.objects.filter(sender__id__in=employees_id).order_by("-sent_at")
             else:
                 emails = Email.objects.all().order_by("-sent_at")
+                print(emails)
 
             paginator = StandardResultsSetPagination()
             result_page =paginator.paginate_queryset(emails, request) 
             serializer = EmailsViewSerializer(result_page, many=True)
             if serializer.data:
-                return Response(paginator.get_paginated_response(serializer.data), status=status.HTTP_200_OK)
+                return paginator.get_paginated_response(serializer.data)
+            
             return Response({"message":"No data found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"message":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

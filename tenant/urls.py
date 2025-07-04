@@ -1,5 +1,5 @@
 from django.urls import path
-from tenant.views import TenantView, RegisterTenant, SendOTPView, LoginView, CheckAuthView, MyTokenRefreshView,resend_otp_view,logout_user,CompanydetailView,handle_active
+from tenant.views import TenantView, RegisterTenant, SendOTPView, LoginView, CheckAuthView,MyTokenObtainPairView, MyTokenRefreshView,resend_otp_view,logout_user,CompanydetailView,handle_active
 from django.contrib import admin
 from billing import webhook_handler
 
@@ -14,6 +14,7 @@ urlpatterns = [
      path('register/', RegisterTenant.as_view(), name='tenat-register'),
      path('otp/', SendOTPView.as_view(), name="send_otp"),
      path("login/", LoginView.as_view()),
+     path("api/token",MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
      path('api/token/refresh/', MyTokenRefreshView.as_view(),
           name='token_refresh'),
      path('resend-otp/', resend_otp_view, name='resend- otp'),

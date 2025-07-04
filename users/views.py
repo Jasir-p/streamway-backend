@@ -359,6 +359,7 @@ class TeamManagmentView(APIView):
             return Response({"error": "No team found"})
 
         except Exception as e:
+            print(str(e))
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     def get_team(self, request, team_id):
