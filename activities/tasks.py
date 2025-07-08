@@ -5,6 +5,7 @@ from django_tenants.utils import schema_context
 from tenant.models import Tenant
 from datetime import date
 from django.utils import timezone
+from communications.utlis import notification_handler
 @shared_task
 def tenant_mail_to(email_ids,schema):
     try:
@@ -63,17 +64,20 @@ def task_due_info():
 @shared_task
 def check_due_date(schema):
     with schema_context(schema):
-        # Get all due dates for the tenant
+
         tasks = Task.objects.all().exclude(status="COMPLETED")
 
         for task in tasks:
             remainig_day = (task.duedate - date.today()).days
 
             if remainig_day ==1:
+                notification_handler('Task',f'''"{task.title}"Due date is Tomorrow''',task.assigned_to_employee)
                 print("remaining one day")
 
             if remainig_day ==0:
+                notification_handler('Task',f'''"{task.title}"Due date is Today''',task.assigned_to_employee)
                 print("remaining zero day")
 
             if remainig_day <0:
+                notification_handler('Task',f'''"{task.title}"Task is OverDue''',task.assigned_to_employee)
                 print("remaining negative day")
