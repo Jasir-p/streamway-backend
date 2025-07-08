@@ -9,7 +9,7 @@ redis_client = redis.StrictRedis(host='redis', port=6379, db=0,
 @shared_task
 def log_user_activity_task(user_id, action, max_logs=50):
     key = "active_logs"
-    ttl_seconds = 60 * 60 * 48  # 48 hours = 2 days
+    ttl_seconds = 60 * 60 * 48  
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_entry = {

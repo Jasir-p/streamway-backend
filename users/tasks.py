@@ -10,8 +10,8 @@ def employee_login_credential(email, tenant_name, subdomain, password="12345678"
     Task to send employee login credentials (username, password, tenant name, and login URL).
     """
     subject = "Your Employee Login Credentials for Stream Way"
-    from_email = 'stream8196@gmail.com'  # Use the email configured in settings
-    access_url = f"http://{subdomain}.streamway.com/login"
+    from_email = 'stream8196@gmail.com' 
+    access_url = f"https://streamway.solutions/{subdomain}/signin"
 
     plain_message = f"""Hello,
 

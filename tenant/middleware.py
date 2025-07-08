@@ -29,7 +29,8 @@ class CustomTenantMiddleware:
         # Allow public and static paths
         if request.path.startswith((
             "/admin/", "/static/", "/media/", "/action/",
-            "/api/token", "/ws"
+            "/api/token", "/ws","/favicon.ico","/robots.txt",
+                "/health"
         )):
             connection.set_schema_to_public()
             return self.get_response(request)

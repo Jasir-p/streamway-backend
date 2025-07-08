@@ -33,7 +33,7 @@ ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1,.localhost"
 CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="").split(",")
 CORS_ALLOWED_ORIGIN_REGEXES = [config("CORS_ALLOWED_ORIGIN_REGEXES")]
 
-CORS_ALLOW_ALL_ORIGINS = True  # Temporary (not recommended for production)
+# CORS_ALLOW_ALL_ORIGINS = True  # Temporary (not recommended for production)
 
 CORS_ALLOW_CREDENTIALS = True  
 
@@ -132,13 +132,17 @@ ROOT_URLCONF = 'streamway.urls'
 
 # SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"  # Store session in cookies
 CSRF_COOKIE_DOMAIN = ".localhost"            # or ".yourdomain.com" in prod
-CSRF_COOKIE_SECURE = False                   # True in production
+CSRF_COOKIE_SECURE = True                   # True in production
 CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = True
+
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
     "http://localhost:5173",
     "http://*.localhost:5173",
+    "www.streamway.solutions",
+    "api.streamway.solutions"
 ]
 
 
