@@ -5,7 +5,7 @@ from django_tenants.utils import schema_context
 from tenant.models import Tenant
 from datetime import date
 from django.utils import timezone
-from communications.utlis import notification_handler
+from communications.utlis.notification_handler import notification_set
 import logging
 
 logger = logging.getLogger(__name__)
@@ -78,14 +78,14 @@ def check_due_date(schema):
             logger.info(f"➡️  Running check_due_date for {len(tasks)} tasks (today={remainig_day})")
 
             if remainig_day ==1:
-                notification_handler('Task',f'''"{task.title}"Due date is Tomorrow''',task.assigned_to_employee)
+                notification_set('Task',f'''"{task.title}"Due date is Tomorrow''',task.assigned_to_employee)
                 print("remaining one day")
                 logger.info("📢 sent 'due tomorrow' notification")
 
             elif remainig_day ==0:
-                notification_handler('Task',f'''"{task.title}"Due date is Today''',task.assigned_to_employee)
+                notification_set('Task',f'''"{task.title}"Due date is Today''',task.assigned_to_employee)
                 print("remaining zero day")
 
             elif remainig_day <0:
-                notification_handler('Task',f'''"{task.title}"Task is OverDue''',task.assigned_to_employee)
+                notification_set('Task',f'''"{task.title}"Task is OverDue''',task.assigned_to_employee)
                 print("remaining negative day")
