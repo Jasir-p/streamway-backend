@@ -74,6 +74,7 @@ def check_due_date(schema):
         logger.info(f"➡️  Running check_due_date for {len(tasks)} tasks (today={today})")
         for task in tasks:
             remainig_day = (task.duedate - date.today()).days
+            logger.info(f"➡️  Running check_due_date for {len(tasks)} tasks (today={remainig_day})")
 
             if remainig_day ==1:
                 notification_handler('Task',f'''"{task.title}"Due date is Tomorrow''',task.assigned_to_employee)
