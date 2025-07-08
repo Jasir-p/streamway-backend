@@ -73,6 +73,7 @@ def check_due_date(schema):
         today = date.today()
         logger.info(f"➡️  Running check_due_date for {len(tasks)} tasks (today={today})")
         for task in tasks:
+            logger.info(f"➡️  Running check_due_date for {len(tasks)} tasks (due={task.duedate})")
             remainig_day = (task.duedate - date.today()).days
             logger.info(f"➡️  Running check_due_date for {len(tasks)} tasks (today={remainig_day})")
 
