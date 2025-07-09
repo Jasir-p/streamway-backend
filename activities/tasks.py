@@ -81,7 +81,7 @@ def check_due_date(schema):
             if remainig_day ==1:
                 notification_set(type='Task',message=f'''"{task.title}"Due date is Tomorrow''',user=task.assigned_to_employee)
                 print("remaining one day")
-                logger.info("📢 sent 'due tomorrow' notification")
+                logger.info("sent 'due tomorrow' notification")
 
             elif remainig_day ==0:
                 notification_set(type='Task',message=f'''"{task.title}"Due date is Today''',user=task.assigned_to_employee)

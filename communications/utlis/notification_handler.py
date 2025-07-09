@@ -1,6 +1,6 @@
 from communications.models import Notifications
 from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
+from asgiref.sync import async_to_sync,sync_to_async
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,14 +28,14 @@ logger = logging.getLogger(__name__)
 
 
 
-def notification_set(type, message, user=None):
+async def notification_set(type, message, user=None):
     if not user:
         return
 
     print("➡️ Creating notification for user", user.id)
 
     # Save notification to DB (this is a sync DB operation)
-    saved = Notifications.objects.create(
+    saved = await sync_to_async(Notifications.objects.create)(
         type=type,
         message=message,
         user=user
@@ -57,7 +57,7 @@ def notification_set(type, message, user=None):
 
             # Only use async call after DB operations
             user_id = user.user.id
-            async_to_sync(channel_layer.group_send)(f"user-{user_id}", data)
+            await async_to_sync(channel_layer.group_send)(f"user-{user_id}", data)
 
     except Exception as e:
         logger.error(f'"{str(e)}"')
