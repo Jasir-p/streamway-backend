@@ -82,41 +82,44 @@ def check_due_date(schema):
             logger.info(f"➡️  Running check_due_date for {len(tasks)} tasks (today={remainig_day})")
 
             if remainig_day ==1:
-                send_due_message.delay(message=f'''"{task.title}"Due date is Tomorrow''',user_id=task.assigned_to_employee.id)
+                send_due_message.delay(message=f'''"{task.title}"Due date is Tomorrow''',user_id=task.assigned_to_employee.id,schema=schema)
                 logger.info("sent 'due tomorrow' notification")
 
             elif remainig_day ==0:
-                send_due_message.delay(message=f'''"{task.title}"Due date is Today''',user_id=task.assigned_to_employee.id)
+                send_due_message.delay(message=f'''"{task.title}"Due date is Today''',user_id=task.assigned_to_employee.id,schema=schema)
                 logger.info("remaining zero day")
 
             elif remainig_day <0:
-                send_due_message.delay(message=f'''"{task.title}"Due date is over''',user_id=task.assigned_to_employee.id)
+                send_due_message.delay(message=f'''"{task.title}"Due date is over''',user_id=task.assigned_to_employee.id,schema=schema)
                 logger.info("remaining negative day")
 
 
 @shared_task
-def send_due_message(message,user_id):
-    user=Employee.objects.get(id=user_id)
-    saved = Notifications.objects.create(
-        type='Task',
-        message=message,
-        user=user
-    )
+def send_due_message(message,user_id,schema_name):
+    from django_tenants.utils import schema_context
 
-    channel_layer = get_channel_layer()
-    if channel_layer is not None:
-            # Prepare message data
-            data = {
-                "type": "user.notification",
-                "data": {
-                    "id": saved.id,
-                    "type": "Task",
-                    "message": message,
+    with schema_context(schema_name):
+        user=Employee.objects.get(id=user_id)
+        saved = Notifications.objects.create(
+            type='Task',
+            message=message,
+            user=user
+        )
+
+        channel_layer = get_channel_layer()
+        if channel_layer is not None:
+                # Prepare message data
+                data = {
+                    "type": "user.notification",
+                    "data": {
+                        "id": saved.id,
+                        "type": "Task",
+                        "message": message,
+                    }
                 }
-            }
 
-            # Only use async call after DB operations
-            user_ids = user.user.id
-            async_to_sync(channel_layer.group_send)(f"user-{user_ids}", data)
+                # Only use async call after DB operations
+                user_ids = user.user.id
+                async_to_sync(channel_layer.group_send)(f"user-{user_ids}", data)
 
         
