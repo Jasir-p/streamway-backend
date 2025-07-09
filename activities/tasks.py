@@ -68,17 +68,9 @@ def task_due_info():
     return f"task_due_info executed for {len(tenants)} tenants"
 
 
-        
-from celery import shared_task
-from datetime import date
-from django_tenants.utils import schema_context
-from tenants.models import Tenant  # adjust import if needed
-from activities.models import Task  # adjust as per your project
-from users.models import Employee  # adjust if needed
-from core.utils import send_tenant_email  # your utility for sending emails
-import logging
 
-logger = logging.getLogger(__name__)
+
+
 
 @shared_task
 def check_due_date(schema):
