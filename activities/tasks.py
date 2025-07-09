@@ -69,94 +69,52 @@ def task_due_info():
 
 
         
-@shared_task
-def check_due_date(schema):
-    with schema_context(schema):
+from celery import shared_task
+from datetime import date
+from django_tenants.utils import schema_context
+from tenants.models import Tenant  # adjust import if needed
+from activities.models import Task  # adjust as per your project
+from users.models import Employee  # adjust if needed
+from core.utils import send_tenant_email  # your utility for sending emails
+import logging
 
-        tasks = Task.objects.all().exclude(status="COMPLETED")
-        today = date.today()
-        logger.info(f"➡️  Running check_due_date for {len(tasks)} tasks (today={today})")
-        for task in tasks:
-            logger.info(f"➡️  Running check_due_date for {len(tasks)} tasks (due={task.duedate})")
-            remainig_day = (task.duedate - date.today()).days
-            logger.info(f"➡️  Running check_due_date for {len(tasks)} tasks (today={remainig_day})")
-
-            if remainig_day ==1:
-                send_due_message.delay(message=f'''"{task.title}"Due date is Tomorrow''',user_id=task.assigned_to_employee.id,schema_name=schema)
-                logger.info("sent 'due tomorrow' notification")
-
-            elif remainig_day ==0:
-                send_due_message.delay(message=f'''"{task.title}"Due date is Today''',user_id=task.assigned_to_employee.id,schema_name=schema)
-                logger.info("remaining zero day")
-
-            elif remainig_day <0:
-                send_due_message.delay(message=f'''"{task.title}"Due date is over''',user_id=task.assigned_to_employee.id,schema_name=schema)
-                logger.info("remaining negative day")
-
+logger = logging.getLogger(__name__)
 
 @shared_task
 def check_due_date(schema):
     with schema_context(schema):
-        tasks = Task.objects.all().exclude(status="COMPLETED")
+        tenant = Tenant.objects.get(schema_name=schema)
+
+        tasks = Task.objects.exclude(status="COMPLETED")
         today = date.today()
-        logger.info(f"➡️  Running check_due_date for {len(tasks)} tasks (today={today})")
-        
+        logger.info(f"➡️ Running check_due_date for {len(tasks)} tasks (today={today})")
+
         for task in tasks:
-            logger.info(f"➡️  Processing task: {task.title} (due={task.duedate})")
-            remaining_days = (task.duedate - today).days
-            logger.info(f"➡️  Remaining days: {remaining_days}")
-            
-            if remaining_days == 1:
-                send_due_message.delay(
-                    message=f'"{task.title}" Due date is Tomorrow',
-                    user_id=task.assigned_to_employee.id,
-                    schema_name=schema
+            remaining_day = (task.duedate - today).days
+            employee = task.assigned_to_employee
+
+            if remaining_day == 1:
+                message = f'"{task.title}" Due date is Tomorrow'
+                logger.info("Prepared 'due tomorrow' email")
+
+            elif remaining_day == 0:
+                message = f'"{task.title}" Due date is Today'
+                logger.info("Prepared 'due today' email")
+
+            elif remaining_day < 0:
+                message = f'"{task.title}" Due date is over'
+                logger.info("Prepared 'overdue' email")
+
+            else:
+                continue  
+
+
+            if employee and employee.email:
+                send_tenant_email(
+                    tenant=tenant,
+                    data=employee,
+                    subject="Task Reminder",
+                    to_email=employee.email,
+                    body=message
                 )
-                logger.info("sent 'due tomorrow' notification")
-            elif remaining_days == 0:
-                send_due_message.delay(
-                    message=f'"{task.title}" Due date is Today',
-                    user_id=task.assigned_to_employee.id,
-                    schema_name=schema
-                )
-                logger.info("sent 'due today' notification")
-            elif remaining_days < 0:
-                send_due_message.delay(
-                    message=f'"{task.title}" Due date is over',
-                    user_id=task.assigned_to_employee.id,
-                    schema_name=schema
-                )
-                logger.info("sent 'overdue' notification")
-
-
-@shared_task
-def send_due_message(message, user_id, schema_name):
-
-    
-    with schema_context(schema_name):
-
-        user = Employee.objects.get(id=user_id)
-        saved = Notifications.objects.create(
-            type='Task',
-            message=message,
-            user=user
-        )
-        
- 
-        user_ids = user.user.id
-        
-
-        data = {
-            "type": "user.notification",
-            "data": {
-                "id": saved.id,
-                "type": "Task",
-                "message": message,
-            }
-        }
-        
-
-        channel_layer = get_channel_layer()
-        if channel_layer is not None:
-            async_to_sync(channel_layer.group_send)(f"user-{user_ids}", data)
-        
+                logger.info(f"Email sent to {employee.email}")

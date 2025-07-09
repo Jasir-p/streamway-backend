@@ -3,7 +3,7 @@ from email.utils import formataddr
 from django.template.loader import render_to_string
 from bs4 import BeautifulSoup
 
-def send_tenant_email(tenant, to_email, subject,instance, body=None, template=None, data=None):
+def send_tenant_email(tenant, to_email, subject,instance=None, body=None, template=None, data=None):
     if template:
         context = {
             'tenant': tenant,
@@ -22,8 +22,9 @@ def send_tenant_email(tenant, to_email, subject,instance, body=None, template=No
         body = render_to_string(f"emails/defualt.html", context)
     soup = BeautifulSoup(body, "html.parser")
     cleaned_body = soup.body.decode_contents() if soup.body else body
-    instance.body=cleaned_body
-    instance.save()
+    if instance is not None:
+        instance.body=cleaned_body
+        instance.save()
 
     from_email = formataddr((f"{tenant.name} Team", f"noreply@streamway.com"))
     
