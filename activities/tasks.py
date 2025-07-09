@@ -86,11 +86,11 @@ def check_due_date(schema):
                 logger.info("sent 'due tomorrow' notification")
 
             elif remainig_day ==0:
-                send_due_message.delay(message=f'''"{task.title}"Due date is Today''',user_id=task.assigned_to_employee.id,chema_name=schema)
+                send_due_message.delay(message=f'''"{task.title}"Due date is Today''',user_id=task.assigned_to_employee.id,schema_name=schema)
                 logger.info("remaining zero day")
 
             elif remainig_day <0:
-                send_due_message.delay(message=f'''"{task.title}"Due date is over''',user_id=task.assigned_to_employee.id,chema_name=schema)
+                send_due_message.delay(message=f'''"{task.title}"Due date is over''',user_id=task.assigned_to_employee.id,schema_name=schema)
                 logger.info("remaining negative day")
 
 
