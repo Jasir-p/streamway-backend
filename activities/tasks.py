@@ -101,12 +101,12 @@ def check_due_date(schema):
                 continue  
 
 
-            if employee and employee.email:
-                send_tenant_email(
-                    tenant=tenant,
-                    data=employee,
-                    subject="Task Reminder",
-                    to_email=employee.email,
-                    body=message
-                )
-                logger.info(f"Email sent to {employee.email}")
+            # if employee and employee.email:
+            #     send_tenant_email(
+            #         tenant=tenant,
+            #         data=employee,
+            #         subject="Task Reminder",
+            #         to_email=employee.email,
+            #         body=message
+            #     )
+            #     logger.info(f"Email sent to {employee.email}")
