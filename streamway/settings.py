@@ -218,7 +218,7 @@ CELERY_BEAT_SCHEDULE = {
     'check-task-duedate':
     {
         'task': 'activities.tasks.task_due_info',
-        'schedule': crontab(minute='*'),  
+        'schedule': crontab(minute=0, hour='9,17'),  
     }
 }
 
