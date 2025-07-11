@@ -423,7 +423,45 @@ class DealView(APIView):
                 return Response({'error': deal_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
+    def put(self, request, *args, **kwargs):
+        try:
+            deal_id = request.data.get("deal_id")
+            
+            if not deal_id:
+                return Response(
+                    {'error': 'Deal ID is required'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            try:
+                deal = Deal.objects.get(deal_id=deal_id)
+            except Deal.DoesNotExist:
+                return Response(
+                    {'error': 'Deal not found'}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            deal_serializer = DealsSerializer(deal, data=request.data, partial=False)
+            if deal_serializer.is_valid():
+                updated_deal = deal_serializer.save()
+                
+                return Response({
+                    'message': 'Deal updated successfully',
+                    'data': DealsViewserializer(updated_deal).data
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response(
+                    {'error': deal_serializer.errors}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+        except Exception as e:
+            return Response(
+                {'error': str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
     def patch(self, request, *args, **kwargs):
             try:
                 deal_ids = request.data.get('deal_ids', [])
