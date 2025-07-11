@@ -110,7 +110,7 @@ def get_invoice_status(request):
         return Response({'error': 'Tenant billing information not found'}, status=status.HTTP_404_NOT_FOUND
                         )
     invoice = Invoice.objects.filter(tenant_billing=tenant_billing_info, status='pending').order_by("created_at").first()
-    print(invoice)
+
     
     if invoice:
         serializer = InvoiceSerializer(invoice)

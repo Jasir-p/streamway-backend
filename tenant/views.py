@@ -49,7 +49,7 @@ class SendOTPView(APIView):
             )
 
         otp, expiray_minute = generate_otp(email)
-        print(otp)
+
         if otp:
             send_otp_email_task.delay(email, otp)
             return Response(
@@ -68,7 +68,7 @@ def sentotp(email):
             )
 
     otp, expiray_minute = generate_otp(email)
-    print(otp)
+
     if otp:
         send_otp_email_task.delay(email, otp)
         return Response(
@@ -148,13 +148,13 @@ class TenantView(APIView):
 
     def post(self, request, format=None):
         tenantdata = request.data
-        print(request.data)
+
         if not tenantdata:
             return Response({"error": "Data is Required"})
         
         email = request.data.get('email')
         try:
-            print("haloooooo")
+
 
             serializer = TenantSerializer(data=tenantdata)
             if serializer.is_valid():
@@ -165,16 +165,16 @@ class TenantView(APIView):
                 sentotp(email)
                 return Response({"message": "Data is stored Succesfully"}, 
                                 status=status.HTTP_200_OK)
-            print(serializer.errors)
+
             return Response(serializer.errors, 
                             status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            print("hello",str(e))
+
             return Response({"error": str(e)},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     def put(self, request,format=None):
-            print(request.data)
+
             tenant_id = request.query_params.get("tenant_id")
             if not tenant_id:
                 return Response({"error": "Tenant ID is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -188,7 +188,7 @@ class TenantView(APIView):
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
-            print(serializer.errors)
+
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, id, format=None):
@@ -213,7 +213,7 @@ class RegisterTenant(APIView):
     def post(self, request):
         email = request.data.get("email")
         otp = request.data.get("otp")
-        print(otp, email)
+
 
         if not email or not otp:
             return Response({"error": "Email and OTP are required"}, 
@@ -265,7 +265,7 @@ class RegisterTenant(APIView):
                 return Response(serializer.errors, 
                                 status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            print(str(e))
+
             return Response({"error": str(e)},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -285,7 +285,7 @@ class LoginView(APIView):
         try:
 
             user = authenticate(request, username=username, password=password)
-            print(user)
+
             if not user:
                 return Response({"error": "Invalid credentials."}, 
                                 status=status.HTTP_401_UNAUTHORIZED)
@@ -297,9 +297,9 @@ class LoginView(APIView):
                 return Response({"error": "Your account is deactivated."}, status=status.HTTP_403_FORBIDDEN)
 
             user_profile = TenantSerializer(tenant)
-            print(user_profile.data)
+
             token_serializer = CustomTokenObtainPairSerializer.get_token(user)
-            print(token_serializer)
+
             access_token = token_serializer.access_token
             refresh = RefreshToken.for_user(user)
 
@@ -337,7 +337,7 @@ class CheckAuthView(APIView):
             return JsonResponse({"status": False, "message": "Tenant not found"}, status=404)
     
         auth = request.headers.get("Authorization")
-        print(auth)
+
         if not auth or not auth.startswith("Bearer "):
             return JsonResponse({
                 "status": True, 

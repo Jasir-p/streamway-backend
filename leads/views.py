@@ -111,7 +111,7 @@ class LeadsView(APIView):
 
             else:
                 leads = Leads.objects.all().order_by("-created_at")
-            print(leads)
+
             paginator = StandardResultsSetPagination()
             result_page = paginator.paginate_queryset(leads, request)
             serializer = LeadsGetSerializer(result_page, many=True)
@@ -560,7 +560,7 @@ def sales_pipeline(request, *args, **kwargs):
         filter_type = filter_info['filter_type']
         start_date = filter_info['start_date']
         end_date = filter_info['end_date']
-        print(filter_info)
+
         if user_id:
             employee_ids = get_employee_and_subordinates_ids(user_id)
             leads = Leads.objects.filter(employee__in=employee_ids).order_by("-created_at")
@@ -592,7 +592,7 @@ def sales_pipeline(request, *args, **kwargs):
         return Response(data, status=status.HTTP_200_OK)
 
     except Exception as e:
-        print(str(e))
+
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

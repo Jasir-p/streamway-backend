@@ -45,12 +45,12 @@ def check_tenant_billing(tenant_id):
                 
 
                 now = timezone.now()
-                print("bill",billing.next_billing_date)
-                print("checktime",now)
+
+
                 
                 if billing.next_billing_date and billing.next_billing_date <= now:
-                    print("bill",billing.next_billing_date)
-                    print("checktime",now)
+
+
 
                     generate_invoice.delay(billing.id)
                     return f"Billing initiated for tenant {tenant.name}"
@@ -75,7 +75,7 @@ def generate_invoice(tenant_billing_id):
         with tenant_context(billing.tenant):
 
             amount, user_count = billing.calculate_bill_amount()
-            print("amount",amount)
+
             
             if amount <= 0:
                 return f"No users to bill for tenant {billing.tenant.name}"

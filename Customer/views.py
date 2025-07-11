@@ -38,14 +38,14 @@ class ContactView(APIView):
             )
             
     def post(self, request, *args, **kwargs):
-        print(request.data)
+
         serializer = ContactSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(
                 {"message": "Contact created","contact":serializer.data}, status=status.HTTP_201_CREATED
             )
-        print(serializer.errors)
+
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -68,7 +68,7 @@ class ContactView(APIView):
     def delete(self, request, *args, **kwargs):
         try:
             contact_ids = request.data.get("contact_ids")
-            print(contact_ids)
+
             contacts = Contact.objects.filter(id__in=contact_ids)
             contacts.delete()
             return Response(
@@ -77,7 +77,7 @@ class ContactView(APIView):
             
             )
         except Exception as e:
-            print(str(e))
+
             return Response(
                 {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
@@ -133,7 +133,7 @@ class AccountsView(APIView):
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
 def assign_to_contact(request):
-    print(request.data)
+
     try:
         serializer = ContactsAsssignSerializer(data=request.data, partial=True)
         if serializer.is_valid():
@@ -143,7 +143,7 @@ def assign_to_contact(request):
             )
         return Response({'message':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
-        print(str(e))
+
         return Response({"error":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(["GET"])
@@ -176,7 +176,7 @@ class AccountCustomisedView(APIView):
     permission_classes = [IsAuthenticated]
 
     def patch(self, request):
-        print("Request data:", request.data)
+
         account_id = request.query_params.get("account_id")
         if not account_id:
             return Response({"detail": "Account ID is required."}, status=400)
@@ -185,15 +185,15 @@ class AccountCustomisedView(APIView):
         if not account:
             return Response({"detail": "Account not found."}, status=404)
 
-        print("Account before update:", account)
+
         key = request.data.get("key")
         value = request.data.get("value")
         is_editing = request.data.get("is_Editing")
         new_key = request.data.get("name")
-        print(key,value,is_editing)
+
 
         if "key" in request.data:
-            print("jasir",key)
+
             if not is_editing:
                 if account.custome_fields is None :
                     account.custome_fields = {}
@@ -217,11 +217,11 @@ class AccountCustomisedView(APIView):
             serializer.save()
             return Response(serializer.data, status=200)
 
-        print("Serializer errors:", serializer.errors)
+
         return Response(serializer.errors, status=400)
 
     def delete(self,request):
-        print(request.data)
+
         account_id = request.query_params.get("account_id")
         if not account_id:
             return Response({"detail": "Account ID is required."}, status=400)

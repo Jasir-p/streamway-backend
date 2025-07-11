@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def tenant_mail_to(email_ids,schema):
     try:
 
-        print("celaryyyy")
+
         with schema_context(schema):
             tenant = Tenant.objects.get(schema_name=schema)
             emails = Email.objects.filter(id__in=email_ids)
@@ -55,7 +55,7 @@ def tenant_mail_to(email_ids,schema):
             return True
     
     except Exception as e:
-        print(str(e))
+
         return str(e)
 
 @shared_task

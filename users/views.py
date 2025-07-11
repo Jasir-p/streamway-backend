@@ -43,7 +43,7 @@ class EmployeeManagment(APIView):
             employee = Employee.objects.all()
             serializer = UserListViewSerializer(employee, many=True)
             if serializer.data:
-                print(serializer.data)
+
                 
                 return Response({'employee': serializer.data},
                                 status=status.HTTP_200_OK)
@@ -87,7 +87,7 @@ class EmployeeManagment(APIView):
     def put(self, request, *args, **kwargs):
         user_id = request.data.get("user_id")
         user_data = request.data.get("user_data")
-        print(user_data)
+
         
         try:
             employee = Employee.objects.get(id=user_id)
@@ -96,18 +96,18 @@ class EmployeeManagment(APIView):
                 serializer.save()
                 return Response({"message": "Updated Succesfully"},
                                 status=status.HTTP_200_OK)
-            print(serializer.errors)
+
             return Response({"error": serializer.errors},
                             status=status.HTTP_400_BAD_REQUEST)
         
         except Exception as e:
-            print(str(e))
+
             return Response({"error": str(e)},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def delete(self, request, *args, **kwargs):
         user_id = request.data.get("user_id")
-        print(user_id)
+
         try:
             employee = Employee.objects.get(id=user_id)
             employee.user.delete()
@@ -126,9 +126,9 @@ class EmployeeLoginView(APIView):
     def post(self, request, *args, **kwargs):
         username = request.data.get("username")
         password = request.data.get("password")
-        print(password, username)
+
         tenant = request.tenant
-        print(tenant.is_active)
+
         
         try:
             employee = authenticate(username=username, password=password)
@@ -147,13 +147,13 @@ class EmployeeLoginView(APIView):
             refresh_token = RefreshToken.for_user(employee)
             employee_instance = Employee.objects.get(user=employee)
             employee_serializer = EmployeeSerializer(employee_instance)
-            print(employee_serializer.data)
+
 
             return Response({"access_token": str(access_roken),
                             "refresh_token": str(refresh_token),
                              "profile": employee_serializer.data}, status=status.HTTP_200_OK)
         except Employee.DoesNotExist:
-            print("error")
+
             return Response({"error": "invalid user"},
                             status=status.HTTP_404_NOT_FOUND)
 
@@ -164,7 +164,7 @@ def user_access(request):
     try:
 
         users_id = request.data.get("user_ids")
-        print(users_id)
+
         if isinstance(users_id, int):
             users_id = [users_id]
         if not users_id:
@@ -193,7 +193,7 @@ def user_access(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def password_change(request):
-    print(request.data)
+
     try:
         email = request.data.get("email")
         password = request.data.get("confirmPassword")
@@ -203,12 +203,12 @@ def password_change(request):
                             status=status.HTTP_400_BAD_REQUEST)
         
         User.objects.get(username=email)
-        print(User.objects.get(username=email))
+
         redis_key = f"password:{email}"
         redis_client.set(redis_key, json.dumps(password))
         redis_client.expire(redis_key, 1200)
         otp_data, expire = generate_otp(email)
-        print(otp_data)
+
         employee_password_change.delay(email, otp_data, tenant_name)
 
         return Response({"message": "OTP sent successfully"}, 
@@ -218,7 +218,7 @@ def password_change(request):
         return Response({"error": "Invalid user"},
                         status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
-        print("Exception Traceback:", traceback.format_exc())
+
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
@@ -226,7 +226,7 @@ def password_change(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def password_change_verify(request):
-    print(request.data)
+
     try:
         otp = request.data.get("otp")
         email = request.data.get("email")
@@ -243,7 +243,7 @@ def password_change_verify(request):
             return Response({"error": "Invalid OTP"}, 
                             status=status.HTTP_400_BAD_REQUEST)
         password = json.loads(password_data)
-        print(email, otp)
+
         is_valid, message = validate_otp(email, otp)
         
         if not is_valid:
@@ -259,7 +259,7 @@ def password_change_verify(request):
                         status=status.HTTP_200_OK)
     
     except Exception as e:
-        print("Exception Traceback:", traceback.format_exc())
+
         return Response({"error": str(e)}, 
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -319,7 +319,7 @@ def profile_update(request):
                 )
     
     except Exception as e:
-        print("Exception Traceback:", traceback.format_exc())
+
         return Response({"error": str(e)},
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
@@ -342,7 +342,7 @@ class TeamManagmentView(APIView):
     def get(self, request, *args, **kwargs):
         team_id = request.query_params.get("team_id")
         user_id = request.query_params.get("userId")
-        print(team_id)
+
         try:
             if team_id:
                 return self.get_team(request, team_id)
@@ -359,7 +359,7 @@ class TeamManagmentView(APIView):
             return Response({"error": "No team found"})
 
         except Exception as e:
-            print(str(e))
+
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     def get_team(self, request, team_id):
@@ -377,7 +377,7 @@ class TeamManagmentView(APIView):
             )
        
     def post(self, request, *args, **kwargs):
-        print(request.data["team_lead"])
+
         try:
             serializer = TeamSerializer(data=request.data)
             if serializer.is_valid():
@@ -391,9 +391,9 @@ class TeamManagmentView(APIView):
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def put(self, request, *args, **kwargs):
-        print("data",request.data)
+
         team_id = request.data.get("team_id")
-        print(type(team_id))
+
         try:
             
             team = Team.objects.get(id=team_id)
@@ -406,14 +406,14 @@ class TeamManagmentView(APIView):
                         'team': serializer.data
                     }, status=status.HTTP_200_OK
                 )
-            print(serializer.errors)
+
             return Response(
                 {
                     "message": "Inavalid", "error": serializer.errors
                 }, status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
-            print(e)
+
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
@@ -437,7 +437,7 @@ class TeamManagmentView(APIView):
         team_id = request.data.get("team_id")
         try:
             
-            print(team_id)
+
             team = Team.objects.get(id=team_id)
             team.delete()
             return Response({"message": "Sucessfully Deleted"}, status=status.HTTP_200_OK)
@@ -471,14 +471,14 @@ class TeamMemberView(APIView):
                             status=status.HTTP_404_NOT_FOUND)
         
     def post(self, request, *args, **kwargs):
-        print(request.data)
+
         try:
             serializer = TeamMembersSerializer(data=request.data)
             if serializer.is_valid():
                 serializer.save()
                 return Response({"message": "Team member created successfully"},
                                 status=status.HTTP_201_CREATED)
-            print(serializer.errors) 
+
             return Response({"error": serializer.errors}, 
                             status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:

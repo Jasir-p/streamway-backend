@@ -17,15 +17,14 @@ class RoleView(APIView):
 
     def get(self, request, *args, **kwargs):
         id = request.query_params.get("role_id")
-        print(id)
+
         if id:
             return self.get_role(request, id)
 
         # Fetch only top-level roles
         roles = Role.objects.filter(parent_role__isnull=True)  
         hierarchy = [role.get_role_hierarchy() for role in roles]
-        for role in roles:
-            print(role.get_role_hierarchy())
+        
         
         return Response({"roles": hierarchy})
             
@@ -33,7 +32,7 @@ class RoleView(APIView):
         try:       
             role = Role.objects.get(id=id)
             serializer = RoleSerializers(role)
-            print(serializer.data)
+
             employees = Employee.objects.filter(role__id=role.id)
             employee_serializer = UserListViewSerializer(employees, many=True)
             permission = RoleAcessPermission.objects.filter(role__id=id)
@@ -48,7 +47,7 @@ class RoleView(APIView):
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def post(self, request, format=None):
-        print(request.data)
+
         serializers = RoleSerializers(data=request.data)
 
         if serializers.is_valid():
@@ -56,7 +55,7 @@ class RoleView(APIView):
             return Response({"message": "created"},
                             status=status.HTTP_201_CREATED)
         else:
-            print(serializers.errors)
+
             
             return Response(serializers.errors, 
                             status=status.HTTP_400_BAD_REQUEST)
@@ -119,7 +118,7 @@ class RoleAcessPermissionView(APIView):
     permission_classes = [IsAuthenticated]
     
     def post(self, request, *args, **kwargs):
-        print("data", request.data)
+
         
         serializer = RoleAcessPermissionSerializer(data=request.data)
 
@@ -130,11 +129,11 @@ class RoleAcessPermissionView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
     def delete(self, request, *args, **kwargs):
-        print("data", request.data)
+
         role_id = request.data.get("role")
         perm_id = request.data.get("Permission")
 
-        print(role_id, perm_id)
+
                 
         try:
             

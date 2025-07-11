@@ -31,7 +31,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 logger.warning("No tenant found in WebSocket scope, using public schema")
                 tenant_schema_name = "public"
                 
-            print(f"Using tenant schema: {tenant_schema_name}")
+
 
             await self.channel_layer.group_add(
                 self.room_group_name,
@@ -40,12 +40,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             
 
             user = self.scope.get('user')
-            print(f"User connecting: {user}")
+
             
             await self.accept()
-            print(f"WebSocket Connected to {self.room_group_name} (Room ID: {self.room_id})")
+
         except Exception as e:
-            print(f" Error in connect: {str(e)}")
+
             logger.error(f"WebSocket connection error: {str(e)}")
 
             await self.accept()
@@ -60,18 +60,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
     
     async def receive(self, text_data):
-        print(" receive() method called")
+
         if hasattr(self, 'tenant') and self.tenant:
             await self.set_tenant_schema(self.tenant)
-            print(f" Reset tenant schema to: {self.tenant.schema_name}")
+
        
         text_data_json = json.loads(text_data)
         type = text_data_json.get('type')
         if type == 'chat':
             message = text_data_json.get('message')
-            print("📩 Received message:", message)
+
             msg=await self.save_message(message)
-            print(msg)
+
             
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -83,7 +83,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         elif type == 'addgroup':
             group_name = text_data_json.get('room_name')
             group = await self.add_group(group_name)
-            print(f"👥 Adding group: {group_name}")
+
             await self.channel_layer.group_add(group_name, self.channel_name)
             await self.send(text_data=json.dumps({
                 'type': 'group_created',
@@ -115,10 +115,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         if hasattr(self, 'tenant') and self.tenant:
             await self.set_tenant_schema(self.tenant)
-            print(f"🔄 Reset tenant schema to: {self.tenant.schema_name}")
+
             
         message = event['message']
-        print(message)
+
         # Send message to WebSocket
         await self.send(text_data=json.dumps({
             'type': 'chat',
@@ -128,7 +128,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def group_created(self, event):
         if hasattr(self, 'tenant') and self.tenant:
             await self.set_tenant_schema(self.tenant)
-            print(f"🔄 Reset tenant schema to: {self.tenant.schema_name}")
+
         """Handle group creation broadcast"""
         group_data = event['group_data']
         await self.send(text_data=json.dumps({
@@ -139,7 +139,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def set_tenant_schema(self, tenant):
         """Set the DB connection to use the specified tenant schema"""
-        print(f"Setting tenant schema to: {tenant.schema_name}")
+
         connection.set_tenant(tenant)
         return True
 
@@ -152,19 +152,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
         try:
             user_instance = self.scope['user']
-            print("User:", user_instance)
+
             if not user_instance.is_authenticated:
-                print("Unauthenticated user. Message not saved.")
+
                 return False
 
             
             user = Employee.objects.filter(user__id=user_instance.id).first()
-            print("Employee user:", user)
+
            
 
-            print(f"Looking for room with ID: {self.room_id}")
+
             room = ChatRoom.objects.get(id=self.room_id)
-            print(f"Found room: {room}")
+
             
             msag=Message.objects.create(
                 chat_room=room,
@@ -172,10 +172,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 content=message_content
             )
             serializer = MessageSerializer(msag)
-            print("Message saved successfully")
+
             return serializer.data
         except Exception as e:
-            print(f"Error saving message: {str(e)}")
+
             logger.error(f"Error saving message: {str(e)}")
             return False
     @database_sync_to_async
@@ -203,13 +203,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             room = ChatRoom.objects.get(id=group_id)
         except ChatRoom.DoesNotExist:
-            print(f"ChatRoom with id {group_id} does not exist.")
+
             return 
 
         try:
             user = Employee.objects.get(id=user_id)
         except Employee.DoesNotExist:
-            print(f"Employee with id {user_id} does not exist.")
+
             return
 
         room.participents.add(user)
@@ -221,12 +221,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             room = ChatRoom.objects.get(id=group_id)
         except ChatRoom.DoesNotExist:
-                print(f"ChatRoom with id {group_id} does not exist.")
+                pass
         
         try:
             user = Employee.objects.get(id=user_id)
         except Employee.DoesNotExist:
-            print(f"Employee with id {user_id} does not exist.")
+            pass
 
         room.participents.remove(user)
     
@@ -255,7 +255,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             logger.warning("No tenant found in WebSocket scope, using public schema")
             tenant_schema_name = "public"
         
-        print(f"Using tenant schema: {tenant_schema_name}")
+
 
         # Check user authentication
         if not self.user or not self.user.is_authenticated:
@@ -263,7 +263,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
-        print(f"CurrentUser: {self.user}, ID: {self.user.id}")
+
         await self.accept()
 
         self.group_name = f"user-{self.user.id}"
@@ -283,7 +283,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         )
 
     async def disconnect(self, close_code):
-        print(f"Disconnected with code: {close_code}")
+
         if hasattr(self, 'group_name'):
             await self.channel_layer.group_discard(
                 self.group_name,
@@ -313,7 +313,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     def set_tenant_schema(self, tenant):
         """Set the DB connection to use the specified tenant schema"""
         try:
-            print(f"Setting tenant schema to: {tenant.schema_name}")
+
             connection.set_tenant(tenant)
             return True
         except Exception as e:
@@ -324,7 +324,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     def get_user_notifications(self):
         try:
             user = self.scope.get('user')
-            print(f"Fetching notifications for user ID: {user.id}")
+
             # Verify the model relationship (user__user__id seems unusual)
             notifications = Notifications.objects.filter(
                 user__user__id=user.id,

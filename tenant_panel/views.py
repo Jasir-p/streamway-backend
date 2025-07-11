@@ -55,7 +55,7 @@ def get_employee_analytics(request):
         filter_type = filter_info['filter_type']
         start_date = filter_info['start_date']
         end_date = filter_info['end_date']
-        print(filter_item)
+
 
     
         data = []
@@ -108,7 +108,7 @@ def get_team_analytics(request):
                 team_analytics = get_teams_analytics(team,filter_type,start_date,end_date)
                 data.append(team_analytics)
             except Exception as inner_error:
-                print(f"Error generating analytics for team {team.name}: {inner_error}")
+
                 continue  
 
         return Response(data, status=status.HTTP_200_OK)

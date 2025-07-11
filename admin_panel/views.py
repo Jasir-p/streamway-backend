@@ -107,6 +107,6 @@ def get_active_logs(request):
         logs = json.loads(logs_json)
     else:
         logs = []
-    print(logs)
+
     return JsonResponse({"logs": logs})
     

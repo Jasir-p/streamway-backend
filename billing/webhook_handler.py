@@ -14,7 +14,7 @@ def stripe_webhook(request):
     """
     Handle Stripe webhook events
     """
-    print("firsttt")
+
     stripe.api_key = settings.STRIPE_SECRET_KEY
     webhook_secret = settings.STRIPE_WEBHOOK_SECRET
     
@@ -49,7 +49,7 @@ def handle_invoice_paid(invoice_obj):
     """
     Handle when an invoice is paid
     """
-    print("webinvoice2")
+
     try:
         # Find the invoice in our database
         invoice = Invoice.objects.get(stripe_invoice_id=invoice_obj.id)
@@ -92,7 +92,7 @@ def handle_payment_succeeded(payment_intent):
     """
     Handle when a payment intent succeeds
     """
-    print("webinvoice1")
+
     try:
         invoice = Invoice.objects.get(stripe_payment_intent_id=payment_intent.id)
         invoice.status = 'paid'

@@ -17,8 +17,9 @@ def add_member(sender, instance, created, **kwargs):
             room = ChatRoom.objects.get(team__id=instance.team.id, is_group=True)
             room.participents.add(instance.employee)
         except ChatRoom.DoesNotExist:
+            pass
 
-            print(f"No group chat found for team: {instance.team}")
+
         
 @receiver(post_delete, sender=TeamMembers)
 def remove_member(sender, instance, **kwargs):

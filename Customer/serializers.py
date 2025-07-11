@@ -71,7 +71,7 @@ class AccountsSerilalizer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        print(validated_data)
+
         leads = [lead for lead in validated_data.pop('lead', []) if lead]
         is_deal = self.initial_data.get("create_deal", False)
         deal_amount= self.initial_data.get("deal_amount", 0)
@@ -99,9 +99,9 @@ class AccountsSerilalizer(serializers.ModelSerializer):
                         account_id=account,
                         is_primary_contact =True
                     )
-                    print("check",is_deal)
+
                     if is_deal:
-                        print("check",is_deal)
+
                         date_str= timezone.now().strftime("%Y-%m-%d")
                         Deal.objects.create(
                             account_id=account,

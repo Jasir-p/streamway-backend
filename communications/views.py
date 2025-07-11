@@ -22,13 +22,13 @@ class ChatRoomViewSet(viewsets.ModelViewSet):
         queryset = ChatRoom.objects.all()
         user_id = self.request.query_params.get("user")
         group_chat = self.request.query_params.get("group_chat")
-        print("useridd",user_id)
+
 
 
         if group_chat is not None:
             # Convert "true"/"false" (strings) to boolean
             is_group_chat = group_chat.lower() == "true"
-            print(is_group_chat)
+
             queryset = queryset.filter(is_group=is_group_chat)
 
 
