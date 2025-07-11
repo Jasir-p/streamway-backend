@@ -59,7 +59,7 @@ class ContactView(APIView):
 
         if serializer.is_valid():
             serializer.save()
-            return Response({"message": "Contact updated", "contact": ContactViewSerializer(serializer).data}, status=status.HTTP_200_OK)
+            return Response({"message": "Contact updated", "contact": ContactViewSerializer(serializer.instance).data}, status=status.HTTP_200_OK)
         return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
                                 
