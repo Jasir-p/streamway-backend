@@ -127,7 +127,6 @@ Stream Way Team
         <p>Your account has been successfully created. Below are your login credentials:</p>
         <p><strong>Username:</strong> {email}</p>
         <p><strong>Password:</strong> {password}</p>
-        <p>Please use these credentials to <a href="http://yourplatform.com/login">log in</a> and start managing your business.</p>
         <p>If you didn't request this, please contact our support team immediately.</p>
         <br>
         <p>Best regards,</p>
