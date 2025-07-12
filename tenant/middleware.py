@@ -103,8 +103,6 @@ class CustomTenantMiddleware:
 class WebSocketTenantMiddleware:
     """
     WebSocket middleware for multitenancy using subfolder-like prefix.
-    Strips tenant prefix from path and authenticates via Bearer token / cookie / query param.
-    Example: ws://localhost:8000/adscompany01/ws/notification/
     """
 
     def __init__(self, app):
@@ -133,7 +131,6 @@ class WebSocketTenantMiddleware:
             scope["path"] = new_path
             logger.info(f"[WebSocket] Updated path: {scope['path']}")
 
-            # Token extraction (priority: header > query > cookie)
             token = await self.extract_token_from_scope(scope)
 
             # Attach user to scope

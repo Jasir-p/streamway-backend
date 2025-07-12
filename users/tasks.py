@@ -90,3 +90,41 @@ def employee_password_change(email, otp, tenant_name):
     """
 
     send_mail(subject, plain_message, from_email, [email], html_message=html_message)
+
+@shared_task
+def password_send(email, password,tenant_name):
+    # Send an email to the employee with the OTP for password change
+    subject = f"Reset password"
+    from_email = 'stream8196@gmail.com'
+    
+
+    plain_message = f"""Hello,
+
+    
+
+    Your rest Password  for login is: {password}
+
+    Please use this password to proceed with your login time and yiu can change this password later.
+
+
+    If you didn't request this, please contact support immediately.
+
+    Best regards,  
+    Streamway Team
+    """
+
+    html_message = f"""
+    <html>
+    <body>
+        <h2>Reset password</h2>
+        
+        <p>Your Your rest Password  for login is <strong>{password}</strong></p>
+        
+        <br>
+        <p>Best regards,</p>
+        <p><strong>Streamway Team</strong></p>
+    </body>
+    </html>
+    """
+
+    send_mail(subject, plain_message, from_email, [email], html_message=html_message)

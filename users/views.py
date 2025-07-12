@@ -9,13 +9,14 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from rest_framework.decorators import api_view,permission_classes
-from users.tasks import employee_login_credential, employee_password_change
+from users.tasks import employee_login_credential, employee_password_change,password_send
 from django_tenants.utils import get_tenant_model, get_tenant_domain_model
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
 import redis
 import json
 from tenant.utlis.otp_utils import generate_otp, validate_otp
+from tenant.utlis.password_genarator import generate_password
 from django_tenants.utils import schema_context
 from django.shortcuts import get_object_or_404
 from tenant.models import Tenant
@@ -24,8 +25,7 @@ import traceback
 from .utlis.employee_hierarchy import get_employee_and_subordinates_ids
 from admin_panel.tasks import log_user_activity_task
 from activities.serializers import TaskViewSerializer
-
-
+from tenant.tasks import send_otp_email_task
 redis_client = redis.StrictRedis(host='redis', port=6379, db=0,
                                  decode_responses=True)
 
@@ -222,7 +222,6 @@ def password_change(request):
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
-
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def password_change_verify(request):
@@ -322,7 +321,51 @@ def profile_update(request):
 
         return Response({"error": str(e)},
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def forgot_password(request):
+    try:
+        email = request.data.get("email")
+        if not email:
+            return Response({"error": "Email is required"},status=status.HTTP_400_BAD_REQUEST)
+        user=User.objects.get(username=email)
+        if user and not Employee.objects.filter(user=user).exists():
+            otp, expiry_minute = generate_otp(email)
+            if otp:
+                send_otp_email_task.delay(email,otp)
+                return Response({"message": "OTP sent successfully"}, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "Invalid user"}, status=status.HTTP_400_BAD_REQUEST)
+    except User.DoesNotExist:
+        return Response({"error": "Invalid user"}, status=status.HTTP_400_BAD_REQUEST)
     
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def forgot_password_verify_otp(request):
+    try:
+        email = request.data.get("email")
+        otp = request.data.get("otp")
+        if not email or not otp:
+            return Response({"error": "Email and OTP are required"},status=status.HTTP_400_BAD_REQUEST)
+        is_valid, message = validate_otp(email, otp)
+        
+        if not is_valid:
+            return Response({"error": message}, 
+                            status=status.HTTP_400_BAD_REQUEST)
+        password = generate_password()
+        user = User.objects.get(username=email)
+        user.set_password(password)
+        user.save()
+        password_send.delay(email, password)
+        return Response({"message": "Password reset successfully"}, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response({"error": "Invalid user"}, status=status.HTTP_400_BAD_REQUEST)
+    
+        
+
 
 class MyTokenObtainPairView(TokenObtainPairView):
     
