@@ -92,7 +92,7 @@ def employee_password_change(email, otp, tenant_name):
     send_mail(subject, plain_message, from_email, [email], html_message=html_message)
 
 @shared_task
-def password_send(email, password,tenant_name):
+def password_send(email, password):
     # Send an email to the employee with the OTP for password change
     subject = f"Reset password"
     from_email = 'stream8196@gmail.com'
