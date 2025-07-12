@@ -332,7 +332,7 @@ def forgot_password(request):
         if not email:
             return Response({"error": "Email is required"},status=status.HTTP_400_BAD_REQUEST)
         user=User.objects.get(username=email)
-        if user and not Employee.objects.filter(user=user).exists():
+        if user and Tenant.objects.filter(email=email).exists():
             otp, expiry_minute = generate_otp(email)
             if otp:
                 send_otp_email_task.delay(email,otp)
