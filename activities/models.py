@@ -99,7 +99,7 @@ class Meeting(models.Model):
     status = models.CharField(max_length=20, choices=status_choice, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(Employee, on_delete=models.SET_NULL, related_name='created_meetings', null=True)
-    contact = models.ForeignKey(Contact, on_delete=models.SET_NULL, null=True, blank=True)
+    contact = models.ForeignKey(Contact, on_delete=models.CASCADE, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 
