@@ -2,8 +2,11 @@ from communications.models import Notifications
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 import logging
+from django.contrib.auth import get_user_model
+
 
 logger = logging.getLogger(__name__)
+User=get_user_model()
 
 # def notification_set(type, message, user=None):
 #     print("id",user.id)
@@ -28,19 +31,22 @@ logger = logging.getLogger(__name__)
 
 
 
-def notification_set(type, message, user=None):
-    # if not user:
-    #     return
-
-    print("➡️ Creating notification for user", user.id)
+def notification_set(type, message, user=None,tenant=None):
 
     # Save notification to DB (this is a sync DB operation)
+    
+    if user:
+        user_id=user.user.id
+    elif tenant:
+        user_id=User.objects.get(username=tenant.email).id
+    else:
+        return
+        
     saved = Notifications.objects.create(
         type=type,
         message=message,
         user=user
     )
-
     # Now safely send WebSocket (pure async section)
     try:
         channel_layer = get_channel_layer()
@@ -55,8 +61,6 @@ def notification_set(type, message, user=None):
                 }
             }
 
-            # Only use async call after DB operations
-            user_id = user.user.id
             async_to_sync(channel_layer.group_send)(f"user-{user_id}", data)
 
     except Exception as e:

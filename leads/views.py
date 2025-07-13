@@ -281,7 +281,7 @@ class WebEnquiry(APIView):
             serializer = WebformSerializer(data=request.data)
             if serializer.is_valid():
                 serializer.save()
-                notification_set(type="Enquiry", message="New Enquiry",user=None)
+                notification_set(type="Enquiry", message="New Enquiry",user=None,tenant=request.tenant)
                 
                 return Response(
                     {'message': 'Enquiry submitted'}, status=status.HTTP_200_OK
