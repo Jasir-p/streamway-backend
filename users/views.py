@@ -341,6 +341,23 @@ def forgot_password(request):
             return Response({"error": "Invalid user"}, status=status.HTTP_400_BAD_REQUEST)
     except User.DoesNotExist:
         return Response({"error": "Invalid user"}, status=status.HTTP_400_BAD_REQUEST)
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def forgot_password_employee(request):
+    try:
+        email = request.data.get("email")
+        if not email:
+            return Response({"error": "Email is required"},status=status.HTTP_400_BAD_REQUEST)
+        user=User.objects.get(username=email)
+        if user and Employee.objects.filter(user=user).exists():
+            otp, expiry_minute = generate_otp(email)
+            if otp:
+                send_otp_email_task.delay(email,otp)
+                return Response({"message": "OTP sent successfully"}, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "Invalid user"}, status=status.HTTP_400_BAD_REQUEST)
+    except User.DoesNotExist:
+        return Response({"error": "Invalid user"}, status=status.HTTP_400_BAD_REQUEST)
     
 @api_view(["POST"])
 @permission_classes([AllowAny])
