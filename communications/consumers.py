@@ -91,21 +91,47 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }))
         elif type == 'removegroup':
             group_id = text_data_json.get('room_id')
-            print(f"🚫 Removing group: {group_id}"
-                  )
-            await self.remove_group(group_id)
-            # await self.channel_layer.group_discard(group_id, self.channel_name)
+
+            success =await self.remove_group(group_id)
+            if success:
+                await self.channel_layer.group_send(
+                    "chat_general",
+                    {
+                        'type': 'group_deleted',
+                        'group_id': group_id
+                    }
+                )
+
 
 
         elif type == 'adduser':
             user_id = text_data_json.get('user_id')
             group_id=text_data_json.get('group_id')
-            await self.add_user(user_id, group_id)
+            success =await self.add_user(user_id, group_id)
+            if success:
+                await self.channel_layer.group_send(
+                    "chat_general",
+                    {
+                        'type': 'user_added',
+                        'user_id': user_id,
+                        'group_id': group_id
+                    }
+                )
+
 
         elif type == 'removeuser':
             user_id = text_data_json.get('user_id')
             group_id=text_data_json.get('group_id')
-            await self.remove_user(user_id, group_id)
+            success =await self.remove_user(user_id, group_id)
+            if success:
+                await self.channel_layer.group_send(
+                    "chat_general",
+                    {
+                        'type': 'user_removed',
+                        'user_id': user_id,
+                        'group_id': group_id
+                    }
+                )
 
         
         
@@ -237,7 +263,8 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.db import connection
 from .serializers import NotificationSerializer
-from .models import Notifications  # Ensure this import is correct
+from .models import Notifications  
+from users.models import Employee
 
 logger = logging.getLogger(__name__)
 
@@ -324,13 +351,19 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     def get_user_notifications(self):
         try:
             user = self.scope.get('user')
+            if Employee.objects.filter(user=user).exists():
 
-            # Verify the model relationship (user__user__id seems unusual)
-            notifications = Notifications.objects.filter(
-                user__user__id=user.id,
-                is_read=False,
-                is_clear=False
-            )
+                notifications = Notifications.objects.filter(
+                    user__user__id=user.id,
+                    is_read=False,
+                    is_clear=False
+                )
+            else:
+                notifications = Notifications.objects.filter(
+                    user=None,
+                    is_read=False,
+                    is_clear=False
+                )
             serializer = NotificationSerializer(notifications, many=True)
             # print(f"Serialized notifications: {serializer.data}")
             return serializer.data

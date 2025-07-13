@@ -30,6 +30,7 @@ from .services import get_deal_status_summary,get_lead_status_summary
 from django.utils import timezone
 from tenant_panel.utils.filters import  parse_filter_params
 from tenant_panel.utils.applay_date_filter import apply_date_filter
+from communications.utlis.notification_handler import notification_set
 
 import logging
 
@@ -280,6 +281,8 @@ class WebEnquiry(APIView):
             serializer = WebformSerializer(data=request.data)
             if serializer.is_valid():
                 serializer.save()
+                notification_set(type="Enquiry", message="New Enquiry",user=None)
+                
                 return Response(
                     {'message': 'Enquiry submitted'}, status=status.HTTP_200_OK
                 )
