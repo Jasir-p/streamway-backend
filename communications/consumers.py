@@ -92,10 +92,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         elif type == 'removegroup':
             group_id = text_data_json.get('room_id')
 
-            success =await self.remove_group(group_id)
-            if success:
-                await self.channel_layer.group_send(
-                    "chat_general",
+            await self.remove_group(group_id)
+           
+            await self.channel_layer.group_send(
+                   f"chat_{group_id}",
                     {
                         'type': 'group_deleted',
                         'group_id': group_id
@@ -107,10 +107,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         elif type == 'adduser':
             user_id = text_data_json.get('user_id')
             group_id=text_data_json.get('group_id')
-            success =await self.add_user(user_id, group_id)
-            if success:
-                await self.channel_layer.group_send(
-                    "chat_general",
+            await self.add_user(user_id, group_id)
+            
+            await self.channel_layer.group_send(
+                    f"chat_{group_id}",
                     {
                         'type': 'user_added',
                         'user_id': user_id,
@@ -122,10 +122,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         elif type == 'removeuser':
             user_id = text_data_json.get('user_id')
             group_id=text_data_json.get('group_id')
-            success =await self.remove_user(user_id, group_id)
-            if success:
-                await self.channel_layer.group_send(
-                    "chat_general",
+            await self.remove_user(user_id, group_id)
+
+            await self.channel_layer.group_send(
+                    f"chat_{group_id}",
                     {
                         'type': 'user_removed',
                         'user_id': user_id,
@@ -164,31 +164,27 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def group_deleted(self, event):
         if hasattr(self, 'tenant') and self.tenant:
             await self.set_tenant_schema(self.tenant)
-
         await self.send(text_data=json.dumps({
             'type': 'group_deleted',
             'group_id': event.get('group_id')
         }))
-
     async def user_added(self, event):
         if hasattr(self, 'tenant') and self.tenant:
             await self.set_tenant_schema(self.tenant)
-
         await self.send(text_data=json.dumps({
             'type': 'user_added',
             'user_id': event.get('user_id'),
             'group_id': event.get('group_id')
         }))
-
     async def user_removed(self, event):
         if hasattr(self, 'tenant') and self.tenant:
             await self.set_tenant_schema(self.tenant)
-
         await self.send(text_data=json.dumps({
             'type': 'user_removed',
             'user_id': event.get('user_id'),
             'group_id': event.get('group_id')
         }))
+    
 
     @database_sync_to_async
     def set_tenant_schema(self, tenant):
