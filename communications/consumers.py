@@ -161,6 +161,34 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'type': 'group_created',
             'group': group_data
         }))
+    async def group_deleted(self, event):
+        if hasattr(self, 'tenant') and self.tenant:
+            await self.set_tenant_schema(self.tenant)
+
+        await self.send(text_data=json.dumps({
+            'type': 'group_deleted',
+            'group_id': event.get('group_id')
+        }))
+
+    async def user_added(self, event):
+        if hasattr(self, 'tenant') and self.tenant:
+            await self.set_tenant_schema(self.tenant)
+
+        await self.send(text_data=json.dumps({
+            'type': 'user_added',
+            'user_id': event.get('user_id'),
+            'group_id': event.get('group_id')
+        }))
+
+    async def user_removed(self, event):
+        if hasattr(self, 'tenant') and self.tenant:
+            await self.set_tenant_schema(self.tenant)
+
+        await self.send(text_data=json.dumps({
+            'type': 'user_removed',
+            'user_id': event.get('user_id'),
+            'group_id': event.get('group_id')
+        }))
 
     @database_sync_to_async
     def set_tenant_schema(self, tenant):
