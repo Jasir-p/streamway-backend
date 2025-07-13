@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 
 
 def notification_set(type, message, user=None):
-    if not user:
-        return
+    # if not user:
+    #     return
 
     print("➡️ Creating notification for user", user.id)
 
