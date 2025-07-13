@@ -375,11 +375,16 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         user = self.scope.get("user")
         if not user or not user.is_authenticated:
             return
-        
-        Notifications.objects.filter(
-            id__in=notification_ids,
-            user__user__id=user.id  
-        ).update(is_read=True)
+        if Employee.objects.filter(user=user).exists():
+            Notifications.objects.filter(
+                id__in=notification_ids,
+                user__user__id=user.id  
+            ).update(is_read=True)
+        else:
+            Notifications.objects.filter(
+                id__in=notification_ids,
+                user=None 
+            ).update(is_read=True)
 
 
 
