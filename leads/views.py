@@ -287,6 +287,7 @@ class WebEnquiry(APIView):
                     {'message': 'Enquiry submitted'}, status=status.HTTP_200_OK
                 )
             else:
+                logger.error(serializer.errors)
                 return Response(
                     {"detail":"Invalid input", "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
                 )
