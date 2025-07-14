@@ -70,8 +70,7 @@ class CustomTenantMiddleware:
             auth_header = request.headers.get("Authorization", "")
             if auth_header.startswith("Bearer "):
                 token = auth_header.split("Bearer ")[1]
-            elif "access_token" in request.COOKIES:
-                token = request.COOKIES["access_token"]
+            
 
             if token:
                 try:
@@ -79,6 +78,17 @@ class CustomTenantMiddleware:
                     request.user_id = decoded_token.get("user_id")
                     request.role = decoded_token.get("role")
                     request.permissions = decoded_token.get("permissions", [])
+                    subdomain = decoded_token.get("subdomain")
+                    if subdomain and subdomain != domain.domain:
+                        logger.warning(
+                        f"Token tenant mismatch: token has {subdomain}, request is for {domain.domain}"
+                    )
+                        return JsonResponse(
+                            {"error": "Token does not match the tenant context"},
+                            status=status.HTTP_403_FORBIDDEN
+                        )
+
+
                     logger.info(f"Authenticated user {request.user_id} from token.")
                 except Exception as e:
                     logger.warning(f"JWT decode error: {e}")
