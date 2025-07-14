@@ -219,14 +219,7 @@ class RegisterTenant(APIView):
             return Response({"error": "Email and OTP are required"}, 
                             status=status.HTTP_400_BAD_REQUEST)
 
-        redis_key = f"tenant_data:{email}"
-        tenant_data = redis_client.get(redis_key)
-
-        if not tenant_data:
-            return Response({"error": "Data not found in cache"}, 
-                            status=status.HTTP_404_NOT_FOUND)
-
-        tenant_data = json.loads(tenant_data)
+        
 
         try:
             # Validate OTP
@@ -236,6 +229,14 @@ class RegisterTenant(APIView):
                                 status=status.HTTP_400_BAD_REQUEST)
 
             # Save tenant data to the database
+            redis_key = f"tenant_data:{email}"
+            tenant_data = redis_client.get(redis_key)
+
+            if not tenant_data:
+                return Response({"error": "Data not found in cache"}, 
+                                status=status.HTTP_404_NOT_FOUND)
+
+            tenant_data = json.loads(tenant_data)
             serializer = TenantSerializer(data=tenant_data)
             if serializer.is_valid():
                 

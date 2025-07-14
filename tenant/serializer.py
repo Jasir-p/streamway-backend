@@ -7,9 +7,12 @@ from django_tenants.utils import get_tenant_model, get_tenant_domain_model, sche
 from django.shortcuts import get_object_or_404
 from django.db import connection
 import logging
+import re
 
 logger = logging.getLogger(__name__)
-
+EMAIL_REGEX = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
+CONTACT_REGEX = r"^(?!0{10})[0-9]{10}$"
+NAME_REGEX = r"^(?=.*[A-Za-z])[A-Za-z0-9\s&.,'-]+$"
 class TenantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tenant
@@ -27,9 +30,27 @@ class TenantSerializer(serializers.ModelSerializer):
             'auto_created_schema', 'is_active', 'schema_name', 
             'auto_drop_schema'
         ]
+    def validate_owner_name(self, value):
+        value=value.strip()
+        if not value:
+            raise serializers.ValidationError('Owner name is required')
+        if not re.match(NAME_REGEX, value):
+            raise serializers.ValidationError('Invalid owner name')
+        return value
+    def validate_name(self, value):
+        
+        " Validate the name of the tenant "
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("Tenant name cannot be empty")
+        if not re.match(NAME_REGEX, value):
+            raise serializers.ValidationError("Invalid tenant name")
+        return value
 
     def validate_email(self, value):
         """Validate the email format and uniqueness."""
+        if not re.match(EMAIL_REGEX, value):
+            raise serializers.ValidationError('Invalid email format')
         if not value.endswith("com"):
             raise serializers.ValidationError
         ("The email must belong to the 'example.com' domain.")
@@ -40,12 +61,8 @@ class TenantSerializer(serializers.ModelSerializer):
 
     def validate_contact(self, value):
         """Validate the contact number format and length."""
-        if not value.isdigit():
-            raise serializers.ValidationError
-        ("The contact number must contain only digits.")
-        if len(value) != 10:
-            raise serializers.ValidationError
-        ("The contact number must be exactly 10 digits.")
+        if not re.match(CONTACT_REGEX, value):
+            raise serializers.ValidationError("Enter a valid 10-digit contact number (not all zeros).")
         return value
 
     def create(self, validated_data):

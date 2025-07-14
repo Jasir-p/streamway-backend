@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from rabc.serializers import RoleSerializers
 from rabc.models import RoleAcessPermission
 from django.contrib.auth.hashers import make_password
+import re
 
 
 
@@ -144,6 +145,9 @@ class TeamSerializer(serializers.ModelSerializer):
                         }
         
     def validate_name(self, value):
+        value = value.strip()
+        if not value or not re.search(r'[A-Za-z]', value):
+            raise serializers.ValidationError("Team name must contain at least one alphabet character and not be empty or whitespace only.")
         team_id = self.instance.id if self.instance else None
         if Team.objects.filter(name__iexact=value).exclude(id=team_id).exists():
             raise serializers.ValidationError("Team name already exists")
