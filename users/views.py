@@ -26,6 +26,9 @@ from .utlis.employee_hierarchy import get_employee_and_subordinates_ids
 from admin_panel.tasks import log_user_activity_task
 from activities.serializers import TaskViewSerializer
 from tenant.tasks import send_otp_email_task
+from tenant_panel.constants import PASSWORD_REGEX
+import re
+
 redis_client = redis.StrictRedis(host='redis', port=6379, db=0,
                                  decode_responses=True)
 
@@ -197,12 +200,29 @@ def password_change(request):
     try:
         email = request.data.get("email")
         password = request.data.get("confirmPassword")
+        old_password = request.data.get("oldPassword")
         tenant_name = request.tenant.name
         if not password:
             return Response({"error": "Password is required"},
                             status=status.HTTP_400_BAD_REQUEST)
+        if not email:
+            return Response({"error": "Email is required"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if not re.match(PASSWORD_REGEX,password):
+            return Response({"error": "Password should be at least 8 characters long, and should containat "
+            "least one uppercase letter, one lowercase letter, and one digit"},
+                             status=status.HTTP_400_BAD_REQUEST)
         
-        User.objects.get(username=email)
+        user=User.objects.get(username=email)
+        if not user.check_password(old_password):
+            return Response({"oldPassword": "Old password is incorrect."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if user.check_password(password):
+            return Response({"error": "New password cannot be same as old password."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+
+
 
         redis_key = f"password:{email}"
         redis_client.set(redis_key, json.dumps(password))
@@ -272,9 +292,11 @@ def profile_update(request):
         "id": request.data.get("id"),
         "name": request.data.get("name"),
         "email": request.data.get("email"),
-        "role": role
+        "role": role,
+        "contact_number":request.data.get("phone")
     }
 
+    print(profile_data)
     if not user_id:
         return Response({"error": "User ID is required"},
                         status=status.HTTP_400_BAD_REQUEST)

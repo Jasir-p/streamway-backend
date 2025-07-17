@@ -9,7 +9,11 @@ from Customer .models import Accounts,Contact
 from users.serializer import UserListViewSerializer,TeamViewserilizer
 from .tasks import tenant_mail_to
 from datetime import datetime
+import re
+from datetime import date, time as time_obj
 
+
+FORBIDDEN_TITLE_CHARS_REGEX = re.compile(r"[\/\-_]")
 class TaskSerializer(serializers.ModelSerializer):
     # Remove content_type and related_object
     lead = serializers.PrimaryKeyRelatedField(
@@ -121,11 +125,8 @@ class EmailSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         schema=self.schema
         to_leads = validated_data.pop("to_lead", [])
-        print(to_leads)
         to_contacts = validated_data.pop("to_contacts", [])
-        print("contatcs",to_contacts)
         to_accounts = validated_data.pop("to_accounts", [])
-        print(to_accounts)
 
         created_emails = []
         print(to_leads)
@@ -193,6 +194,31 @@ class MeetingSerializer(serializers.ModelSerializer):
             'duration', 'host', 'status', 'contact','created_by'
         ]
         read_only_fields = ['start_time']
+    
+
+    def validate_date(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Date is required')
+        if value < date.today():
+            raise serializers.ValidationError("Date cannot be in the past.")
+        return value
+    def validate_time(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Time is required')
+        if not (time_obj(9, 0) <= value <= time_obj(18, 0)):
+            raise serializers.ValidationError("Time must be between 09:00 and 18:00.")
+        return value
+    def validate_title(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("Title is required")
+        if FORBIDDEN_TITLE_CHARS_REGEX.search(value):
+            raise serializers.ValidationError("Title cannot contain  '/', '-', or '_'.")
+        return value
+    
+
     def create(self, validated_data):
         date = validated_data.pop('date')
         time = validated_data.pop('time')

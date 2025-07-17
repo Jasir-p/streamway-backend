@@ -12,7 +12,8 @@ class Employee(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=200)
-    joined = models.DateField(default=timezone.now)  # Add default value
+    contact_number = models.CharField(max_length=15,null=True,blank=True)
+    joined = models.DateField(default=timezone.now)  
     password = models.CharField(max_length=128)
     is_active = models.BooleanField(default=True)
     role = models.ForeignKey(Role, on_delete=SET_NULL, null=True, blank=True,

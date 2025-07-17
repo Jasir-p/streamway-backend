@@ -14,6 +14,10 @@ class RoleSerializers(serializers.ModelSerializer):
             }
         
     def validate_name(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Name is required')
+        
         role_id = self.instance.id if self.instance else None
         if Role.objects.filter(name__iexact=value).exclude(
              id=role_id).exists():

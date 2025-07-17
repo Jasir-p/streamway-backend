@@ -19,6 +19,7 @@ from Customer.serializers import ContactViewSerializer
 from users.utlis.get_user import get_user
 from users.utlis.employee_hierarchy import get_employee_and_subordinates_ids
 from tenant.pagination import StandardResultsSetPagination
+from tenant_panel.constants import FORBIDDEN_TITLE_CHARS_REGEX
 
 
 
@@ -133,7 +134,7 @@ class EmailsView(APIView):
         
     def post(self, request, *args, **kwargs):
         try:
-
+            print(request.data)
             schema = get_schema_name(request)
             serializer = EmailSerializer(data=request.data,schema=schema)
             if serializer.is_valid():

@@ -129,6 +129,7 @@ class LeadsView(APIView):
             if serializer.is_valid():
                 instance = serializer.save()
                 response_data = LeadSerializers(instance, schema=schema).data
+                print(response_data.employee)
                 return Response(
                     {
                         'message': 'Lead saved successfully',
@@ -293,6 +294,7 @@ class WebEnquiry(APIView):
                 )
         
         except Exception as e:
+            logger.error(str(e))
             return Response(
                 {'error': str(e)}, status=status.HTTP_400_BAD_REQUEST
             )

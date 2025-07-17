@@ -34,6 +34,8 @@ class TenantSerializer(serializers.ModelSerializer):
         value=value.strip()
         if not value:
             raise serializers.ValidationError('Owner name is required')
+        if len(value) < 3:
+            raise serializers.ValidationError(" must be at least 3 characters long")
         if not re.match(NAME_REGEX, value):
             raise serializers.ValidationError('Invalid owner name')
         return value
@@ -43,6 +45,8 @@ class TenantSerializer(serializers.ModelSerializer):
         value = value.strip()
         if not value:
             raise serializers.ValidationError("Tenant name cannot be empty")
+        if len(value) < 3:
+            raise serializers.ValidationError(" must be at least 3 characters long")
         if not re.match(NAME_REGEX, value):
             raise serializers.ValidationError("Invalid tenant name")
         return value

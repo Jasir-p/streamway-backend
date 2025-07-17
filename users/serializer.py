@@ -8,6 +8,8 @@ from rabc.serializers import RoleSerializers
 from rabc.models import RoleAcessPermission
 from django.contrib.auth.hashers import make_password
 import re
+from tenant_panel.constants import EMAIL_REGEX,CONTACT_REGEX,NAME_REGEX
+
 
 
 
@@ -17,7 +19,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
         fields = [
-            'id', 'name', 'email', 'role'
+            'id', 'name', 'email', 'role','contact_number','joined'
         ]
 
         extra_kwargs = {
@@ -27,14 +29,40 @@ class EmployeeSerializer(serializers.ModelSerializer):
         }
 
     def validate_email(self, value):
-        if not value.endswith(".com"):
-            raise serializers.ValidationError("Invalid email format")
+        """Validate the email format and uniqueness."""
+        if not re.match(EMAIL_REGEX, value):
+            raise serializers.ValidationError('Invalid email format')
+        if not value.endswith("com"):
+            raise serializers.ValidationError
+        ("The email must belong to the 'example.com' domain.")
         employe_id = self.instance.id if self.instance else None
         if Employee.objects.filter(email__iexact=value).exclude(id=employe_id).exists():
             raise serializers.ValidationError("email already exist")
         
         return value
+    def validate_name(self, value):
+        
+        " Validate the name of the tenant "
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("Tenant name cannot be empty")
+        if len(value) < 3:
+            raise serializers.ValidationError(" must be at least 3 characters long")
+        if not re.match(NAME_REGEX, value):
+            raise serializers.ValidationError("Invalid tenant name")
+        return value
     
+    def validate_contact_number(self, value):
+        " Validate the contact number of the employee"
+        
+        if not re.match(CONTACT_REGEX, value):
+            raise serializers.ValidationError("Invalid contact number")
+        employee_id = self.instance.id if self.instance else None
+        if Employee.objects.filter(contact_number__iexact=value).exclude(id=employee_id).exists():
+            raise serializers.ValidationError("Contact number already exist")
+        return value
+
+
     def create(self, validated_data):
         user_data = validated_data.pop("user", None)
         if user_data:
@@ -160,6 +188,10 @@ class TeamSerializer(serializers.ModelSerializer):
         ):
             raise serializers.ValidationError("Team lead already exists in another team")
         return value
+    def validate_description(self, value):
+        value = value.strip()
+        if not value or not re.search(r'[A-Za-z]', value):
+            raise serializers.ValidationError("Team description must contain at least one alphabet character and not be empty or whitespace only.")
 
     
     def create(self, validated_data):

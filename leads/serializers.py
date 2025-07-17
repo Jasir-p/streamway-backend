@@ -6,7 +6,9 @@ from .tasks import create_lead_from_webform
 from tenant.utlis.get_tenant import get_schema_name
 from Customer.models import Accounts
 from Customer.serializers import AccountsViewSerializer
-
+import re
+from tenant_panel.constants import EMAIL_REGEX,CONTACT_REGEX,NAME_REGEX,FORBIDDEN_TITLE_CHARS_REGEX
+from datetime import date
 
 
 
@@ -22,6 +24,9 @@ class LeadFormSerializers(serializers.ModelSerializer):
             }
         
     def validate_field_name(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("Field name is required")
         field_id = self.instance.id if self.instance else None
         if LeadFormField.objects.filter(field_name=value).exclude(
                 id=field_id).exists():
@@ -69,18 +74,35 @@ class LeadSerializers(serializers.ModelSerializer):
         return value
 
     def validate_email(self, value):
-        if not value.endswith(".com"):
-            raise serializers.ValidationError("Email must be a .com email")
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Email is required')
+        if not re.match(EMAIL_REGEX,value):
+            raise serializers.ValidationError('Invalid Email')
+        
         return value
     
     def validate_phone_number(self, value):
-        if not value.isdigit():
-            raise serializers.ValidationError("Phone number must be a digit")
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Phone Number is required')
+        if not re.match(CONTACT_REGEX,value):
+            raise serializers.ValidationError('Invalid Phone Number')
+        
         return value
+    def validate_name(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Name is required')
+        if len(value) < 3:
+            raise serializers.ValidationError("Title must be at least 3 characters long")
+        if not re.match(NAME_REGEX, value):
+            raise serializers.ValidationError('Invalid Name')
+        return value
+
+
     
     def to_internal_value(self, data):
-
-        print(data)
         model_fields = {field.name for field in Leads._meta.get_fields()}
         self.custom_fields = {k: v for k, v in data.items()
                               if k not in model_fields}
@@ -145,13 +167,26 @@ class WebformSerializer(serializers.ModelSerializer):
         }
 
     def validate_email(self, value):
-        if not value.endswith(".com"):
-            raise serializers.ValidationError("Email must be a .com email")
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Email is required')
+        if not re.match(EMAIL_REGEX,value):
+            raise serializers.ValidationError('Invalid Email')
         return value
-    
     def validate_phone_number(self, value):
-        if not value.isdigit():
-            raise serializers.ValidationError("Phone number must be a digit")
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Phone Number is required')
+        if not re.match(CONTACT_REGEX,value):
+            raise serializers.ValidationError('Invalid Phone Number')
+    def validate_name(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Name is required')
+        if len(value) < 3:
+            raise serializers.ValidationError("must be at least 3 characters long")
+        if not re.match(NAME_REGEX, value):
+            raise serializers.ValidationError('Invalid Name')
         return value
     
     def to_internal_value(self, data):
@@ -259,12 +294,28 @@ class LeadNoteSerializer(serializers.ModelSerializer):
         model = LeadNotes
         fields = "__all__"
 
+    def validate_notes(self,value):
+        words = value.strip().split()
+        if not words:
+            raise serializers.ValidationError("Notes cannot be empty")
+        if len(words)<5:
+            raise serializers.ValidationError("Notes should be at least 5 words")
+
+        return value
+    def validate_lead(self, value):
+        if not value:
+            raise serializers.ValidationError("Lead is required")
+        return value
+    
+
 class LeadNoteViewSerializer(serializers.ModelSerializer):
     created_by = UserListViewSerializer(read_only=True)
     lead = LeadsGetSerializer(read_only=True)
     class Meta:
         model = LeadNotes
         fields = "__all__"
+
+
 class DealsSerializer(serializers.ModelSerializer):
     created_by = serializers.PrimaryKeyRelatedField(
         queryset=Employee.objects.all(), required=False, allow_null=True
@@ -279,9 +330,26 @@ class DealsSerializer(serializers.ModelSerializer):
         model = Deal
         fields = "__all__"
 
-
-    def validate(self, attrs):
-        return super().validate(attrs)
+    
+    def validate_title(self,value):
+        if len(value) < 3:
+            raise serializers.ValidationError("Title must be at least 3 characters long")
+        if re.search(FORBIDDEN_TITLE_CHARS_REGEX, value):
+            raise serializers.ValidationError("Title contains invalid characters: /, -, _ are not allowed.")
+        return value
+    def validate_expected_close_date(self, value):
+        if value < date.today():
+            raise serializers.ValidationError("Expected close date cannot be in the past.")
+        return value
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Amount must be greater than zero.")
+        return value
+    def validate_account_id(self, value):
+        if not value:
+            raise serializers.ValidationError("Account is required.")
+        return value
+    
         
 
 class DealsViewserializer(serializers.ModelSerializer):
@@ -305,6 +373,16 @@ class DealNotesSerializer(serializers.ModelSerializer):
     class Meta:
         model = DealNotes
         fields = "__all__"
+    def validate_deal(self, value):
+        if not value:
+            raise serializers.ValidationError("Deal is required")
+        return value
+    def validate_notes(self,value):
+        words = value.strip().split()
+        if not words:
+            raise serializers.ValidationError("Notes cannot be empty")
+        if len(words)<5:
+            raise serializers.ValidationError("Notes should be at least 5 words")
 
 class DealNotesViewSerializer(serializers.ModelSerializer):
     created_by = UserListViewSerializer(read_only=True)

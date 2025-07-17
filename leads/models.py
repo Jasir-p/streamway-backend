@@ -94,9 +94,9 @@ class Leads(models.Model):
     email = models.EmailField(max_length=255)
     phone_number = models.CharField(max_length=255, null=True, blank=True)
     location = models.CharField(max_length=255, null=True, blank=True)
-    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, null=True)
+    employee = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True)
     granted_by = models.ForeignKey(
-     Employee, on_delete=models.CASCADE, related_name="granted_by", null=True
+     Employee, on_delete=models.SET_NULL, related_name="granted_by", null=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
