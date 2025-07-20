@@ -149,7 +149,7 @@ class EmployeeLoginView(APIView):
             access_roken = token_serializer.access_token
             refresh_token = RefreshToken.for_user(employee)
             employee_instance = Employee.objects.get(user=employee)
-            employee_serializer = EmployeeSerializer(employee_instance)
+            employee_serializer = UserListViewSerializer(employee_instance)
 
 
             return Response({"access_token": str(access_roken),

@@ -19,22 +19,20 @@ class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
         fields = [
-            'id', 'name', 'email', 'role','contact_number','joined'
+            'id', 'name', 'email', 'role','contact_number'
         ]
 
-        extra_kwargs = {
-            'name': {'required': True},
-            'email': {'required': True},
-            'role': {'required': True}
-        }
+        # extra_kwargs = {
+        #     'name': {'required': True},
+        #     'email': {'required': True},
+        #     'role': {'required': True}
+        # }
 
     def validate_email(self, value):
         """Validate the email format and uniqueness."""
         if not re.match(EMAIL_REGEX, value):
             raise serializers.ValidationError('Invalid email format')
-        if not value.endswith("com"):
-            raise serializers.ValidationError
-        ("The email must belong to the 'example.com' domain.")
+
         employe_id = self.instance.id if self.instance else None
         if Employee.objects.filter(email__iexact=value).exclude(id=employe_id).exists():
             raise serializers.ValidationError("email already exist")
@@ -94,7 +92,7 @@ class UserListViewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Employee
-        fields = ['id', 'name', 'email', 'role', "user", "is_active"]
+        fields = ['id', 'name', 'email', 'role', "user", "is_active",'joined','contact_number']
 
 
 class CustomEmployeeTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -109,6 +107,7 @@ class CustomEmployeeTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["name"] = emp.name
         token["role"] = emp.role.name if emp.role else None
         token["email"] = emp.email
+        token["emp_id"] = emp.id
         token["permissions"] = list(RoleAcessPermission.objects.filter(role=emp.role).values_list("Permission__code_name", flat=True))
         tenant_name = connection.tenant.name
         domain_obj = connection.tenant.domains.first()
@@ -143,6 +142,7 @@ class CustomRefreshSerializer(TokenRefreshSerializer):
             access_token["name"] = employee.name
             access_token["role"] = employee.role.name if employee.role else None
             access_token["email"] = employee.email
+            access_token["emp_id"] = employee.id
             access_token["permissions"] = list(RoleAcessPermission.objects.filter(role=employee.role).values_list("Permission__code_name", flat=True))
             tenant_name = connection.tenant.name
             subdomain = connection.tenant.domain_url.split(".")[0]
@@ -193,7 +193,7 @@ class TeamSerializer(serializers.ModelSerializer):
         if not value or not re.search(r'[A-Za-z]', value):
             raise serializers.ValidationError("Team description must contain at least one alphabet character and not be empty or whitespace only.")
 
-    
+        return value
     def create(self, validated_data):
         team = Team.objects.create(**validated_data)
         return team

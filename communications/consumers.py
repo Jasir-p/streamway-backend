@@ -8,6 +8,9 @@ from .services import add_member_to_group,remove_member_from_group
 from .models import Notifications
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from .serializers import NotificationSerializer
+from .models import Notifications  
+from users.models import Employee
 
 logger = logging.getLogger(__name__)
 
@@ -281,16 +284,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         room.participents.remove(user)
     
 
-import json
-import logging
-from channels.generic.websocket import AsyncWebsocketConsumer
-from channels.db import database_sync_to_async
-from django.db import connection
-from .serializers import NotificationSerializer
-from .models import Notifications  
-from users.models import Employee
-
-logger = logging.getLogger(__name__)
 
 class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):

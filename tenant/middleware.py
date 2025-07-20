@@ -79,6 +79,8 @@ class CustomTenantMiddleware:
                     request.role = decoded_token.get("role")
                     request.permissions = decoded_token.get("permissions", [])
                     subdomain = decoded_token.get("subdomain")
+                    emp_id = decoded_token.get("emp_id")
+                    # request_emp_id = request.GET.get("userId") or request.GET.get("usr_id") or request.GET.get("userID")
                     if subdomain and subdomain != domain.domain:
                         logger.warning(
                         f"Token tenant mismatch: token has {subdomain}, request is for {domain.domain}"
@@ -87,7 +89,14 @@ class CustomTenantMiddleware:
                             {"error": "Token does not match the tenant context"},
                             status=status.HTTP_403_FORBIDDEN
                         )
-
+                    # if emp_id and emp_id != request.user_id:
+                    #     logger.warning(
+                    #     f"Token tenant mismatch: token has {subdomain}, request is for {domain.domain}"
+                    # )
+                    #     return JsonResponse(
+                    #         {"error": "Token does not match the tenant context"},
+                    #         status=status.HTTP_403_FORBIDDEN
+                    #     )
 
                     logger.info(f"Authenticated user {request.user_id} from token.")
                 except Exception as e:

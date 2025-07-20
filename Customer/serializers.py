@@ -52,7 +52,7 @@ class ContactSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Invalid Name")
         return value
     def validate_department(self,value):
-        value=value.stripe()
+        value=value.strip()
         contact_id = self.instance.id if self.instance else None
         if contact_id:
             is_primary = Contact.objects.get(id=contact_id).is_primary_contact

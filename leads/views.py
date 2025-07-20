@@ -129,7 +129,7 @@ class LeadsView(APIView):
             if serializer.is_valid():
                 instance = serializer.save()
                 response_data = LeadSerializers(instance, schema=schema).data
-                print(response_data.employee)
+                
                 return Response(
                     {
                         'message': 'Lead saved successfully',

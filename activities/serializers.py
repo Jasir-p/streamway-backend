@@ -55,6 +55,27 @@ class TaskSerializer(serializers.ModelSerializer):
         elif obj.account:
             return AccountsViewSerializer(obj.account).data
         return None
+    def validate_title(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("Title is required")
+        if FORBIDDEN_TITLE_CHARS_REGEX.search(value):
+            raise serializers.ValidationError("Title cannot contain  '/', '-', or '_'.")
+        return value
+    
+    def validate_description(self, value):
+        word = value.strip()
+        if not word:
+            raise serializers.ValidationError("Description is required")
+        if len(word) < 30:
+            raise serializers.ValidationError("Description should be at least 30 characters long")
+        return value
+    
+    def validate_duedate(self, value):
+        if not value:
+            raise serializers.ValidationError("Due date is required")
+        if value < date.today():
+            raise serializers.ValidationError("Due date cannot be in the past")
 
     def validate(self, attrs):
         
@@ -197,17 +218,17 @@ class MeetingSerializer(serializers.ModelSerializer):
     
 
     def validate_date(self, value):
-        value = value.strip()
+        
         if not value:
             raise serializers.ValidationError('Date is required')
         if value < date.today():
             raise serializers.ValidationError("Date cannot be in the past.")
         return value
     def validate_time(self, value):
-        value = value.strip()
+        
         if not value:
             raise serializers.ValidationError('Time is required')
-        if not (time_obj(9, 0) <= value <= time_obj(18, 0)):
+        if not (time_obj(9, 0) <= value <= time_obj(20, 0)):
             raise serializers.ValidationError("Time must be between 09:00 and 18:00.")
         return value
     def validate_title(self, value):

@@ -64,7 +64,7 @@ def get_employee_analytics(request):
             employee_ids = get_employee_and_subordinates_ids(user_id)
             for eid in employee_ids:
                     try:
-                        emp_analytics = get_analytics(eid,filter_type,start_date=None, end_date=None)
+                        emp_analytics = get_analytics(eid,filter_type,start_date, end_date)
                         data.append(emp_analytics)
                     except Exception as e:
                         logger.error(f"Analytics error for employee {eid}: {str(e)}")
@@ -74,7 +74,7 @@ def get_employee_analytics(request):
             employee_ids = Employee.objects.all().values_list('id', flat=True)
             for emp_id in employee_ids:
                     try:
-                        response = get_analytics(emp_id,filter_type,start_date=None, end_date=None)
+                        response = get_analytics(emp_id,filter_type,start_date, end_date)
                         data.append(response)
                     except Exception as e:
                         logger.error(f"Analytics error for employee {emp_id}: {str(e)}")

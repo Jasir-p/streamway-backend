@@ -10,7 +10,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.http import JsonResponse
 import redis
 import json
-
+from  tenant_panel.utils.filters import parse_filter_params
+from tenant_panel.utils.applay_date_filter import apply_date_filter
 
 
 redis_client = redis.StrictRedis(host='redis', port=6379, db=0,
@@ -54,7 +55,7 @@ def admin_dashboard(request):
             logs = []
 
         tenats_count = Tenant.objects.all().count()
-        invoice_data =InvoiceSerializer(Invoice.objects.all(), many=True)
+        invoice_data =InvoiceSerializer(Invoice.objects.filter(), many=True)
         return Response({
             "tenants_count":tenats_count,
             "invoices":invoice_data.data,
@@ -69,7 +70,12 @@ def admin_dashboard(request):
 @permission_classes([IsAuthenticated])
 def admin_analytics(request):
     try:
-        invoice_data =InvoiceSerializer(Invoice.objects.all(), many=True)
+        filter_item = request.query_params.get("filter")
+        filter_info = parse_filter_params(filter_item)
+        filter_type = filter_info['filter_type']
+        start_date = filter_info['start_date']
+        end_date = filter_info['end_date']
+        invoice_data =InvoiceSerializer(apply_date_filter(Invoice.objects.all(),filter_type,start_date,end_date), many=True)
         return Response({
          
             "invoices":invoice_data.data

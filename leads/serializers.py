@@ -179,6 +179,7 @@ class WebformSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Phone Number is required')
         if not re.match(CONTACT_REGEX,value):
             raise serializers.ValidationError('Invalid Phone Number')
+        return value
     def validate_name(self, value):
         value = value.strip()
         if not value:
