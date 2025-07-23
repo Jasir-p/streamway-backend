@@ -7,7 +7,7 @@ redis_client = redis.StrictRedis(host='redis', port=6379, db=0,
 
 OTP_PREFIX = "otp_"
 MAX_RESEND_COUNT = 10
-OTP_EXPIRE_SECONDS = 300
+OTP_EXPIRE_SECONDS = 120
 
 
 def generate_otp(email, length=6):
@@ -20,7 +20,7 @@ def generate_otp(email, length=6):
         "created_at": datetime.now().isoformat(),
         "resend_count": 0
     })
-    expiry_minutes = 5
+    expiry_minutes = 2
     redis_client.expire(key, OTP_EXPIRE_SECONDS)
     return otp, expiry_minutes
 

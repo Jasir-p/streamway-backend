@@ -289,7 +289,7 @@ class LoginView(APIView):
 
             if not user:
                 return Response({"error": "Invalid credentials."}, 
-                                status=status.HTTP_401_UNAUTHORIZED)
+                                status=status.HTTP_404_NOT_FOUND)
             
             with schema_context("public"):
                 tenant = get_object_or_404(Tenant, email=user.username)

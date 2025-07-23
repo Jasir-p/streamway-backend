@@ -343,12 +343,35 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             notification_ids = data.get("notification_ids", [])
             await self.mark_notifications_as_read(notification_ids)
 
+            await self.channel_layer.group_send(
+                self.group_name,
+                {
+                    "type": "user.notification",
+                    "message_type": "notifications_updated",
+                    "notifications": await self.get_user_notifications()
+                    }
+            )
+        if event_type == "mark_all_read":
+            await self.mark_notifications_all_read()
+            await self.channel_layer.group_send(
+                self.group_name,
+                {
+                    "type": "user.notification",
+                     "message_type": "notifications_updated",
+                    "notifications": await self.get_user_notifications()
+                    }
+            )
+
+
     async def user_notification(self, event):
         logger.info(f"Received user_notification event: {event}")
         try:
             notifications = await self.get_user_notifications()
-            # print(f"Notifications for user {self.user.id}: {notifications}")
-            await self.send(text_data=json.dumps(notifications))
+            response_data = {
+            "message_type": event.get("message_type", "new_notification"),
+            "notifications": notifications
+        }
+            await self.send(text_data=json.dumps(response_data))
         except Exception as e:
             logger.error(f"Error in user_notification: {str(e)}")
             await self.send(text_data=json.dumps({"error": str(e)}))
@@ -402,6 +425,23 @@ class NotificationConsumer(AsyncWebsocketConsumer):
                 id__in=notification_ids,
                 user=None 
             ).update(is_read=True)
+
+    @database_sync_to_async
+    def mark_notifications_all_read(self):
+        user = self.scope.get("user")
+        if not user or not user.is_authenticated:
+            return
+        if Employee.objects.filter(user=user).exists():
+            Notifications.objects.filter(
+                is_read=False,
+                user__user__id=user.id  
+            ).update(is_read=True)
+        else:
+            Notifications.objects.filter(
+                is_read=False,
+                user=None 
+            ).update(is_read=True)
+        
 
 
 

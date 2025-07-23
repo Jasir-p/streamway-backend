@@ -40,11 +40,15 @@ def check_tenant_billing(tenant_id):
                 billing = TenantBilling.objects.get(tenant=tenant)
                 
 
-                if not billing.is_active:
+                if not billing.is_active :
                     return f"Billing is inactive for tenant {tenant.name}"
+                
                 
 
                 now = timezone.now()
+                if  billing.last_billed_date and not billing.last_billing_status:
+                    return f"Tenant {tenant.name} has not been billed yet"
+
 
 
                 

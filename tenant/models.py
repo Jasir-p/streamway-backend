@@ -75,7 +75,7 @@ class TenantBilling(models.Model):
     def save(self, *args, **kwargs):
         # Create Stripe customer if doesn't exist
         if not self.stripe_customer_id:
-            stripe.api_key = settings.STRIPE_SECRET_KEY  # ✅ This matches your settings
+            stripe.api_key = settings.STRIPE_SECRET_KEY  
 
             customer = stripe.Customer.create(
                 email=self.billing_email,

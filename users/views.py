@@ -141,7 +141,7 @@ class EmployeeLoginView(APIView):
                                 status=status.HTTP_404_NOT_FOUND)
             
             if not employee.is_active or not tenant.is_active:
-                return Response({"error": "Your account or tenant has been disabled."},
+                return Response({"error": "Your account  has been disabled."},
                                 status=status.HTTP_403_FORBIDDEN)
 
             Employee.objects.get(user=employee)
