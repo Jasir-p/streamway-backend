@@ -52,8 +52,6 @@ class Contact(models.Model):
     STATUS_CHOICE = [
         ('active', 'Active'),
         ('inactive', 'Inactive'),
-        ('lost', 'Lost'),
-        ("follow_up", "Follow Up"),
 
     ]
 

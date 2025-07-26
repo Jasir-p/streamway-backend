@@ -65,6 +65,7 @@ SHARED_APPS = [
     'Main_rbac',
     'billing',
     'admin_panel',
+    'django_filters',
    
 
 

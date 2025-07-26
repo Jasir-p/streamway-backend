@@ -2,15 +2,16 @@
 from .models import Contact, Accounts,Notes
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .serializers import( ContactSerializer, 
-                        ContactViewSerializer, 
-                        AccountsSerilalizer, 
-                        AccountsViewSerializer, 
-                        ContactsAsssignSerializer, 
-                        AccountCustomizedSerializer,
-                        AccountNotesSerializer,
-                        AccountNoteViewSerializer,
-                        AccountAssignSerializer)
+from .serializers import( 
+    ContactSerializer, 
+    ContactViewSerializer, 
+    AccountsSerilalizer, 
+    AccountsViewSerializer, 
+    ContactsAsssignSerializer, 
+    AccountCustomizedSerializer,
+    AccountNotesSerializer,
+    AccountNoteViewSerializer,
+    AccountAssignSerializer)
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from tenant.pagination import StandardResultsSetPagination
@@ -18,14 +19,23 @@ from rest_framework.decorators import api_view, permission_classes
 from django.shortcuts import get_object_or_404
 from activities.serializers import TaskViewSerializer
 from leads.serializers import DealsViewserializer
+from .filters import AccountFilter,ContactFilter
+from users.utlis.employee_hierarchy import get_employee_and_subordinates_ids
 
 class ContactView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        userid = request.query_params.get("user_id")
         try:
 
+
             contacts = Contact.objects.all()
+            contact_filter = ContactFilter(request.GET, queryset=contacts)
+            contacts = contact_filter.qs
+            if userid:
+                employees = get_employee_and_subordinates_ids(userid)
+                contacts = contacts.filter(assigned_to__id__in=employees)
             
             pagination = StandardResultsSetPagination()
             result_page = pagination.paginate_queryset(contacts, request)
@@ -86,9 +96,17 @@ class ContactView(APIView):
 class AccountsView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        
+
+        userid = request.query_params.get("user_id")
         try:
             accounts = Accounts.objects.all()
+            filter_accounts = AccountFilter(request.GET,queryset =accounts )
+            accounts = filter_accounts.qs
+            
+            if userid:
+                 employees = get_employee_and_subordinates_ids(userid)
+                 accounts = accounts.filter(assigned_to__id__in=employees)
+
             pagination = StandardResultsSetPagination()
             result_page = pagination.paginate_queryset(accounts, request)
             serializer = AccountsViewSerializer(result_page, many=True)
@@ -102,6 +120,7 @@ class AccountsView(APIView):
             serializer.save()
             return Response({"message": "Account created"}, status=status.HTTP_201_CREATED)
         else:
+            print(str(serializer.errors))
             return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         
     def patch(self, request):
@@ -255,6 +274,13 @@ class AccountsNotesView(APIView):
         
         return Response({"message":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
+    def delete (self,request, *args, **kwargs):
+        note_id = request.data.get("note_id")
+        if not note_id:
+            return Response({"detail": "Note ID is required."}, status=400)
+        Notes.objects.get(id=note_id).delete()
+        return Response({"message":"Note Deleted Successfully"}, status=status.HTTP_200_OK)
+    
 
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
@@ -268,14 +294,4 @@ def assign_to_account(request):
     except Exception as e:
         return Response({"message":str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
-
-# @api_view(['PATCH'])
-# @permission_classes([IsAuthenticated])
-# def contact_status(request):
-#     try:
-
-#         contact_id= request.query_params.get("contact_id")
-#         contact = get_object_or_404(Contact, pk=contact_id)
-#         serializer = ContactSerializer(contact, data=request.data, partial=True)
-#         if serializer.is_valid():
-#             serializer.save()
+    

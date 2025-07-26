@@ -6,7 +6,14 @@ from users.models import Employee
 from users.serializer import UserListViewSerializer
 from django.utils import timezone
 import re
-from tenant_panel.constants import EMAIL_REGEX,CONTACT_REGEX,NAME_REGEX
+from tenant_panel.constants import (
+    EMAIL_REGEX,
+    CONTACT_REGEX,
+    NAME_REGEX,NOTES_HAS_ALPHANUMERIC_REGEX,
+    NOTES_START_REGEX,
+    CUSTOM_FIELD_NAME_REGEX,
+    CUSTOM_FIELD_VALUE_REGEX,
+    REPEATED_CHARACTER_PATTERN)
 
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -226,12 +233,29 @@ class AccountCustomizedSerializer(serializers.ModelSerializer):
     def validate(self, data):
         if 'custome_fields' in data:
             key= data['key']
+            value = data['value']
             instance_custom_fields = self.instance.custome_fields if self.instance and self.instance.custome_fields else {}
+            key = key.strip()
+            value = value.strip()
 
             if key in instance_custom_fields:
                 raise serializers.ValidationError(f"Field '{key}' already exists in custom fields.")
+            if not re.match(CUSTOM_FIELD_NAME_REGEX,key):
+                raise serializers.ValidationError(
+                    f"Field name must start with a letter and contain only letters, numbers, spaces, underscores, or dashes."
+                    )
+            if value.isdigit():
+             raise serializers.ValidationError("Field name cannot be only numbers.")
         
+            if re.match(REPEATED_CHARACTER_PATTERN, key):
+                raise serializers.ValidationError("Field name cannot be the same character repeated.")
+            if key.endswith("-") or  key.endswith('_'):
+                raise serializers.ValidationError("Field name cannot end with a hyphen or underscore.")
+            if not value or not re.match(CUSTOM_FIELD_VALUE_REGEX,value):
+                raise serializers.ValidationError(f" Field value contains invalid characters.")
         return data
+    
+
 class AccountNotesSerializer(serializers.ModelSerializer):
     created_by = serializers.PrimaryKeyRelatedField(
         queryset=Employee.objects.all(), required=False, allow_null=True
@@ -249,11 +273,17 @@ class AccountNotesSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Notes cannot be empty")
         if len(words)<5:
             raise serializers.ValidationError("Notes should be at least 5 words")
+        if not re.match(NOTES_START_REGEX, value):
+            raise serializers.ValidationError("Notes must start with a letter or number.")
+        if not re.match(NOTES_HAS_ALPHANUMERIC_REGEX,value):
+            raise serializers.ValidationError("Notes cannot contain only special characters.")
         return value
+    
     def validate_account(self, value):
         if not value:
             raise serializers.ValidationError("Account is required")
         return value
+ 
     
 class AccountNoteViewSerializer(serializers.ModelSerializer):
     created_by = UserListViewSerializer(read_only=True)

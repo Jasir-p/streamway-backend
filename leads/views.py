@@ -3,17 +3,18 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import LeadFormField, Leads,WebForm,LeadNotes,Deal,DealNotes
 from rest_framework.permissions import IsAuthenticated,AllowAny
-from leads.serializers import( LeadFormSerializers, 
-                              LeadSerializers,WebformSerializer, 
-                              LeadsGetSerializer, 
-                              WebformListViewSerializer,
-                              LeadAssignSerializer,
-                              LeadNoteViewSerializer,
-                              LeadNoteSerializer,
-                              DealsSerializer,
-                              DealsViewserializer,
-                              DealNotesSerializer,
-                              DealNotesViewSerializer)
+from leads.serializers import( 
+    LeadFormSerializers, 
+    LeadSerializers,WebformSerializer, 
+    LeadsGetSerializer, 
+    WebformListViewSerializer,
+    LeadAssignSerializer,
+    LeadNoteViewSerializer,
+    LeadNoteSerializer,
+    DealsSerializer,
+    DealsViewserializer,
+    DealNotesSerializer,
+    DealNotesViewSerializer)
 
 from rest_framework import status
 from tenant.pagination import StandardResultsSetPagination 
@@ -31,7 +32,7 @@ from django.utils import timezone
 from tenant_panel.utils.filters import  parse_filter_params
 from tenant_panel.utils.applay_date_filter import apply_date_filter
 from communications.utlis.notification_handler import notification_set
-
+from .filters import LeadFilter,DealFilter,EnquiryFilter
 import logging
 
 logger = logging.getLogger(__name__)
@@ -103,16 +104,21 @@ class LeadsView(APIView):
     
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        userid = request.query_params.get("userId")
-        
+        userid = request.query_params.get("userId")    
         try:
+            leads=Leads.objects.all()
+            
+            filter_leads = LeadFilter(request.GET,queryset =leads )
+            leads = filter_leads.qs
+            
             if userid:
                 employees = get_employee_and_subordinates_ids(userid)
-                leads = Leads.objects.filter(employee__in=employees).order_by("-created_at")
+                leads = leads.filter(employee__in=employees)
+                
 
-            else:
-                leads = Leads.objects.all().order_by("-created_at")
-
+            
+            leads = leads.order_by("-created_at")
+                
             paginator = StandardResultsSetPagination()
             result_page = paginator.paginate_queryset(leads, request)
             serializer = LeadsGetSerializer(result_page, many=True)
@@ -223,6 +229,17 @@ class LeadNotesView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+    def delete(self, request, *args, **kwargs):
+        try:
+            note_id = request.data.get("notes_id")
+            if not note_id:
+                return Response({"detail": "Note ID is required."}, status=400)
+            LeadNotes.objects.filter(id=note_id).delete()
+            return Response({'message': 'Notes deleted successfully'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
 
 
 
@@ -269,6 +286,10 @@ class WebEnquiry(APIView):
                         output_field=BooleanField()
                     )
                 ).order_by("-created_at")
+            
+            form_filter = EnquiryFilter(request.GET, queryset=enquiry_data)
+            enquiry_data = form_filter.qs
+
             
             serializer = WebformListViewSerializer(enquiry_data, many=True)
             return Response(serializer.data)
@@ -383,6 +404,7 @@ def convert_to(request):
             customer_serializer.save()
             result['customer'] = customer_serializer.data
         else:
+            print(customer_serializer.errors)
             return Response(
                 {"error": customer_serializer.errors},
                 status=status.HTTP_400_BAD_REQUEST
@@ -395,6 +417,7 @@ def convert_to(request):
                 'data': result}, status=status.HTTP_200_OK
                 )
     except Exception as e:
+        print(str(e))
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -404,18 +427,22 @@ class DealView(APIView):
     def get(self, request):
         userid = request.query_params.get("userId")
         try:
+            deals = Deal.objects.all()
+            filter_deals = DealFilter(request.GET,queryset=deals)
+            deals = filter_deals.qs
             if userid:
                 employees =get_employee_and_subordinates_ids(userid)
-                Deals = Deal.objects.filter(owner__in=employees).order_by("-created_at")
+                deals = deals.filter(owner__in=employees)
 
-            else:
-                Deals = Deal.objects.all().order_by("-created_at")
+           
+            deals = deals.order_by("-created_at")
                 
             paginator = StandardResultsSetPagination()
-            result_page = paginator.paginate_queryset(Deals, request)
+            result_page = paginator.paginate_queryset(deals, request)
             serializer = DealsViewserializer(result_page, many=True)
             return paginator.get_paginated_response(serializer.data)
         except Exception as e:
+            print(str(e))
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     def post(self, request, *args, **kwargs):
@@ -518,7 +545,9 @@ class DealView(APIView):
             deals.delete()
             return Response({'message': 'Deals deleted successfully'}, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+
 
 
             
@@ -555,6 +584,19 @@ class DealNoteView (APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    def delete (self, request, *args, **kwargs):
+        try:
+            note_id = request.data.get('note_id')
+            if not note_id:
+                return Response({"detail": "Note ID is required."}, status=400)
+            deal_note = DealNotes.objects.get(id=note_id)
+            deal_note.delete()
+            return Response({'message': 'Deal note deleted successfully'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+    
     
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

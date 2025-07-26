@@ -56,8 +56,7 @@ class CustomTenantMiddleware:
             # Update both path_info and path to ensure consistency
             request.path_info = stripped_path
             request.path = stripped_path
-            
-            # Also update META for consistency
+
             request.META['PATH_INFO'] = stripped_path
             
             logger.info(f"[Middleware] Original path: {request.path}")
@@ -79,8 +78,7 @@ class CustomTenantMiddleware:
                     request.role = decoded_token.get("role")
                     request.permissions = decoded_token.get("permissions", [])
                     subdomain = decoded_token.get("subdomain")
-                    emp_id = decoded_token.get("emp_id")
-                    # request_emp_id = request.GET.get("userId") or request.GET.get("usr_id") or request.GET.get("userID")
+                   
                     if subdomain and subdomain != domain.domain:
                         logger.warning(
                         f"Token tenant mismatch: token has {subdomain}, request is for {domain.domain}"
@@ -89,14 +87,7 @@ class CustomTenantMiddleware:
                             {"error": "Token does not match the tenant context"},
                             status=status.HTTP_403_FORBIDDEN
                         )
-                    # if emp_id and emp_id != request.user_id:
-                    #     logger.warning(
-                    #     f"Token tenant mismatch: token has {subdomain}, request is for {domain.domain}"
-                    # )
-                    #     return JsonResponse(
-                    #         {"error": "Token does not match the tenant context"},
-                    #         status=status.HTTP_403_FORBIDDEN
-                    #     )
+                   
 
                     logger.info(f"Authenticated user {request.user_id} from token.")
                 except Exception as e:
@@ -135,15 +126,11 @@ class WebSocketTenantMiddleware:
             path_parts = scope.get("path", "/").strip("/").split("/")
             tenant_prefix = path_parts[0] if path_parts else None
             logger.info(f"[WebSocket] Tenant prefix: {tenant_prefix}")
-
-            # Resolve tenant from prefix
             tenant = await self.get_tenant_from_prefix(tenant_prefix)
             if tenant:
                 scope["tenant"] = tenant
-                # Set tenant context for this connection
                 await self.set_tenant_async(tenant)
 
-            # Strip the tenant prefix from path for routing
             new_path = "/" + "/".join(path_parts[1:]) if len(path_parts) > 1 else "/"
             if  not new_path.endswith('/') and new_path!= '/':
                 new_path += '/'
@@ -151,8 +138,6 @@ class WebSocketTenantMiddleware:
             logger.info(f"[WebSocket] Updated path: {scope['path']}")
 
             token = await self.extract_token_from_scope(scope)
-
-            # Attach user to scope
             if token:
                 try:
                     access_token = AccessToken(token)
@@ -192,15 +177,6 @@ class WebSocketTenantMiddleware:
             if query_string:
                 query_params = parse_qs(query_string)
                 token = query_params.get("token", [None])[0]
-
-        # 3. From cookies
-        if not token and b"cookie" in headers:
-            cookies = headers[b"cookie"].decode().split("; ")
-            for cookie in cookies:
-                if cookie.startswith("access_token="):
-                    token = cookie.split("=", 1)[1]
-                    break
-
         return token
 
     @sync_to_async

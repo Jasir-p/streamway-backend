@@ -7,7 +7,14 @@ from tenant.utlis.get_tenant import get_schema_name
 from Customer.models import Accounts
 from Customer.serializers import AccountsViewSerializer
 import re
-from tenant_panel.constants import EMAIL_REGEX,CONTACT_REGEX,NAME_REGEX,FORBIDDEN_TITLE_CHARS_REGEX
+from tenant_panel.constants import (
+    EMAIL_REGEX,
+    CONTACT_REGEX,
+    NAME_REGEX,FORBIDDEN_TITLE_CHARS_REGEX
+    ,NOTES_HAS_ALPHANUMERIC_REGEX
+    ,NOTES_START_REGEX,
+    CUSTOM_FIELD_NAME_REGEX,
+    REPEATED_CHARACTER_PATTERN)
 from datetime import date
 
 
@@ -27,8 +34,20 @@ class LeadFormSerializers(serializers.ModelSerializer):
         value = value.strip()
         if not value:
             raise serializers.ValidationError("Field name is required")
+        if not re.match(CUSTOM_FIELD_NAME_REGEX,value):
+                raise serializers.ValidationError(
+                    f"Field name must start with a letter and contain only letters, numbers, spaces, underscores, or dashes."
+                    )
+        if value.isdigit():
+             raise serializers.ValidationError("Field name cannot be only numbers.")
+        
+        if re.match(REPEATED_CHARACTER_PATTERN, value):
+            raise serializers.ValidationError("Field name cannot be the same character repeated.")
+        if value.endswith("-") or  value.endswith('_'):
+            raise serializers.ValidationError("Field name cannot end with a hyphen or underscore.")
+        
         field_id = self.instance.id if self.instance else None
-        if LeadFormField.objects.filter(field_name=value).exclude(
+        if LeadFormField.objects.filter(field_name__iexact=value).exclude(
                 id=field_id).exists():
             raise serializers.ValidationError('Field name already exists')
 
@@ -301,6 +320,10 @@ class LeadNoteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Notes cannot be empty")
         if len(words)<5:
             raise serializers.ValidationError("Notes should be at least 5 words")
+        if not re.match(NOTES_START_REGEX, value):
+            raise serializers.ValidationError("Notes must start with a letter or number.")
+        if not re.match(NOTES_HAS_ALPHANUMERIC_REGEX,value):
+            raise serializers.ValidationError("Notes cannot contain only special characters.")
 
         return value
     def validate_lead(self, value):
@@ -384,7 +407,11 @@ class DealNotesSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Notes cannot be empty")
         if len(words)<5:
             raise serializers.ValidationError("Notes should be at least 5 words")
-
+        if not re.match(NOTES_START_REGEX, value):
+            raise serializers.ValidationError("Notes must start with a letter or number.")
+        if not re.match(NOTES_HAS_ALPHANUMERIC_REGEX,value):
+            raise serializers.ValidationError("Notes cannot contain only special characters.")
+        return value
 class DealNotesViewSerializer(serializers.ModelSerializer):
     created_by = UserListViewSerializer(read_only=True)
     deal = DealsViewserializer(read_only=True)

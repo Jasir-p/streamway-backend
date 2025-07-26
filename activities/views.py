@@ -20,6 +20,7 @@ from users.utlis.get_user import get_user
 from users.utlis.employee_hierarchy import get_employee_and_subordinates_ids
 from tenant.pagination import StandardResultsSetPagination
 from tenant_panel.constants import FORBIDDEN_TITLE_CHARS_REGEX
+from .filters import TaskFilter,EmailFilter,MeetingFilter
 
 
 
@@ -30,21 +31,19 @@ class TaskView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def get(self, request, *args, **kwargs):
-
-
-        now = timezone.now()
-
         userid = request.query_params.get("assigned_to")
 
  
 
         try:
+            task = Task.objects.all()
+            task_filter = TaskFilter(request.GET, queryset=task)
+            
+            task = task_filter.qs
             if userid:
                 employees = get_employee_and_subordinates_ids(userid)
+                task =task.filter(assigned_to_employee__id__in=employees) 
 
-                task =Task.objects.filter(assigned_to_employee__id__in=employees) 
-            else:
-                task = Task.objects.all()
             paginator = StandardResultsSetPagination()
             result_page = paginator.paginate_queryset(task, request)
             serializer = TaskViewSerializer(result_page, many=True)
@@ -111,26 +110,41 @@ class TaskDetailView(RetrieveUpdateDestroyAPIView):
 
 class EmailsView(APIView):
     permission_classes = [IsAuthenticated]
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
+class EmailsView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, *args, **kwargs):
         user_id = request.query_params.get("user_id")
 
         try:
-            if user_id:
-                employees_id =get_employee_and_subordinates_ids(user_id)
-                emails = Email.objects.filter(sender__id__in=employees_id).order_by("-sent_at")
-            else:
-                emails = Email.objects.all().order_by("-sent_at")
-
-
-            paginator = StandardResultsSetPagination()
-            result_page =paginator.paginate_queryset(emails, request) 
-            serializer = EmailsViewSerializer(result_page, many=True)
-            if serializer.data:
-                return paginator.get_paginated_response(serializer.data)
+            emails = Email.objects.all()
+            print("Request GET params:", request.query_params)
             
-            return Response({"message":"No data found"}, status=status.HTTP_404_NOT_FOUND)
+            email_filters = EmailFilter(request.query_params, queryset=emails)
+            emails = email_filters.qs
+
+            if user_id:
+                employees_id = get_employee_and_subordinates_ids(user_id)
+                emails = emails.filter(sender__id__in=employees_id)
+
+            emails = emails.order_by("-sent_at")
+            paginator = StandardResultsSetPagination()
+            result_page = paginator.paginate_queryset(emails, request)
+            serializer = EmailsViewSerializer(result_page, many=True)
+
+            return paginator.get_paginated_response(serializer.data)
+
         except Exception as e:
-            return Response({"message":str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"message": "Something went wrong", "error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
         
     def post(self, request, *args, **kwargs):
         try:
@@ -154,12 +168,15 @@ class MeetingView(APIView):
     def get(self, request, *args, **kwargs):
         user_id = request.query_params.get("userId")
         try:
+            meetings = Meeting.objects.all()
+            meeting_filters = MeetingFilter(request.GET, queryset=meetings)
+            meetings = meeting_filters.qs
+
             if user_id:
                 employees_ids = get_employee_and_subordinates_ids(user_id)
-
-                meetings = Meeting.objects.filter(host__in=employees_ids).order_by("-id")
+                meetings = meetings.filter(host__in=employees_ids)
             else:
-                meetings = Meeting.objects.all().order_by("-id")
+                meetings = meetings.order_by("-id")
             serializer = MeetingViewSerializer(meetings, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
