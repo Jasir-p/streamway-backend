@@ -296,7 +296,7 @@ def profile_update(request):
         "contact_number":request.data.get("phone")
     }
 
-    print(profile_data)
+
     if not user_id:
         return Response({"error": "User ID is required"},
                         status=status.HTTP_400_BAD_REQUEST)
@@ -333,7 +333,7 @@ def profile_update(request):
                     }, status=status.HTTP_200_OK
                 )
             else:
-                print(serializer.errors)  # Log the actual errors
+
                 return Response(
                     {"errors": serializer.errors
                      }, status=status.HTTP_400_BAD_REQUEST

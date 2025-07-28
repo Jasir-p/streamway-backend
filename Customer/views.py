@@ -120,7 +120,7 @@ class AccountsView(APIView):
             serializer.save()
             return Response({"message": "Account created"}, status=status.HTTP_201_CREATED)
         else:
-            print(str(serializer.errors))
+            
             return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         
     def patch(self, request):

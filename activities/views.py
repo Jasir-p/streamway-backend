@@ -123,7 +123,7 @@ class EmailsView(APIView):
 
         try:
             emails = Email.objects.all()
-            print("Request GET params:", request.query_params)
+
             
             email_filters = EmailFilter(request.query_params, queryset=emails)
             emails = email_filters.qs
@@ -148,7 +148,6 @@ class EmailsView(APIView):
         
     def post(self, request, *args, **kwargs):
         try:
-            print(request.data)
             schema = get_schema_name(request)
             serializer = EmailSerializer(data=request.data,schema=schema)
             if serializer.is_valid():

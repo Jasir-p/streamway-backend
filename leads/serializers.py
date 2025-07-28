@@ -125,7 +125,6 @@ class LeadSerializers(serializers.ModelSerializer):
         model_fields = {field.name for field in Leads._meta.get_fields()}
         self.custom_fields = {k: v for k, v in data.items()
                               if k not in model_fields}
-        print(self.custom_fields)
         return super().to_internal_value(data)
     
     def __init__(self, *args, **kwargs):
@@ -211,17 +210,16 @@ class WebformSerializer(serializers.ModelSerializer):
     
     def to_internal_value(self, data):
 
-        print(data)
+
         model_fields = {field.name for field in WebForm._meta.get_fields()}
         self.custom_fields = {k: v for k, v in data.items()
                               if k not in model_fields}
-        print(self.custom_fields)
+
         return super().to_internal_value(data)
 
     def create(self, validated_data):
         lead = WebForm.objects.create(**validated_data)
         if self.custom_fields:
-            print(self.custom_fields)
             lead.custome_fields = self.custom_fields
             lead.save()
         return lead

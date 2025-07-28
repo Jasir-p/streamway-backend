@@ -32,13 +32,12 @@ def stripe_webhook(request):
 
         return HttpResponse(status=400)
     
-    print(event.type) # Handle the event
+
     if event.type == 'invoice.paid':
         handle_invoice_paid(event.data.object)
     elif event.type == 'invoice.payment_failed':
         handle_invoice_payment_failed(event.data.object)
-    elif event.type == 'customer.subscription.deleted':
-        handle_subscription_deleted(event.data.object)
+
     elif event.type == 'payment_intent.succeeded':
         handle_payment_succeeded(event.data.object)
     # Add more event types as needed
@@ -51,7 +50,7 @@ def handle_invoice_paid(invoice_obj):
     """
 
     try:
-        # Find the invoice in our database
+        
         invoice = Invoice.objects.get(stripe_invoice_id=invoice_obj.id)
         invoice.status = 'paid'
         invoice.paid_at = datetime.now()
@@ -64,7 +63,7 @@ def handle_invoice_paid(invoice_obj):
         billing.save()
         log_user_activity_task(billing.tenant.name,"Invoice Paid")
     except Invoice.DoesNotExist:
-        # Log error or handle missing invoice
+       
         pass
 
 def handle_invoice_payment_failed(invoice_obj):
@@ -75,18 +74,12 @@ def handle_invoice_payment_failed(invoice_obj):
         invoice = Invoice.objects.get(stripe_invoice_id=invoice_obj.id)
         invoice.status = 'failed'
         invoice.save()
-        
-        # You might want to send an email to the tenant admin here
+
     except Invoice.DoesNotExist:
-        # Log error or handle missing invoice
+
         pass
 
-def handle_subscription_deleted(subscription_obj):
-    """
-    Handle when a subscription is deleted (if you decide to use subscriptions)
-    """
-    # If you implement subscription-based billing later
-    pass
+
 
 def handle_payment_succeeded(payment_intent):
     """

@@ -154,7 +154,6 @@ class AdminBillingViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['POST'])
     def mark_as_paid(self, request, pk):
         invoice = Invoice.objects.filter(pk=pk).first()
-        print(invoice.tenant_billing.last_billing_status)
         if not invoice:
             return Response({'error': 'Invoice not found'}, status=status.HTTP_404_NOT_FOUND)
 

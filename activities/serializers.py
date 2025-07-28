@@ -109,12 +109,6 @@ class TaskViewSerializer(serializers.ModelSerializer):
         model = Task
         fields = '__all__'
     
-    def get_attachment_url(self, obj):
-        request = self.context.get('request')
-        print(request)
-        if obj.attachment and hasattr(obj.attachment, 'url'):
-            return request.build_absolute_uri(obj.attachment.url)
-        return None
     
 
 class EmailSerializer(serializers.ModelSerializer):
@@ -137,7 +131,6 @@ class EmailSerializer(serializers.ModelSerializer):
     
     def validate_to_lead(self, value):
         if isinstance(value, str):
-            print(value)
             return [value]
         return value
     def __init__(self, *args, **kwargs):
@@ -150,7 +143,6 @@ class EmailSerializer(serializers.ModelSerializer):
         to_accounts = validated_data.pop("to_accounts", [])
 
         created_emails = []
-        print(to_leads)
         for lead_id in to_leads:
             lead = Leads.objects.get(lead_id=lead_id)
             email = Email.objects.create(**validated_data, to_lead=lead,recipient_name=lead.name,recipient_email=lead.email)
