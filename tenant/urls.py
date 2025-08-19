@@ -5,7 +5,7 @@ from billing import webhook_handler
 
 urlpatterns = [
      path('api/', CheckAuthView.as_view()),
-     path('action/', TenantView.as_view(), name='tenant-list'),
+     path('tenants/', TenantView.as_view(), name='tenant-list'),
      path('admin/', admin.site.urls),
      
      path('<int:id>/', TenantView.as_view(),
