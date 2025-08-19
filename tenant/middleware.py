@@ -28,7 +28,7 @@ class CustomTenantMiddleware:
 
         # Allow public and static paths
         if request.path.startswith((
-            "/admin/", "/static/", "/media/", "/action/",
+            "/admin/", "/static/", "/media/", "/tenants/",
             "/api/token", "/ws","/favicon.ico","/robots.txt",
                 "/health"
         )):
